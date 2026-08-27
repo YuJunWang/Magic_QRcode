@@ -3,7 +3,6 @@ import { useUrlState } from './hooks/useUrlState';
 import { useQRMatrix } from './hooks/useQRMatrix';
 import { SceneContainer, type SceneHandle } from './components/3d/SceneContainer';
 import { Header } from './components/ui/Header';
-import { ControlPanel } from './components/ui/ControlPanel';
 import { ViewSwitch } from './components/ui/ViewSwitch';
 import { ShareModal } from './components/ui/ShareModal';
 import type { ThemeType } from './types';
@@ -38,25 +37,29 @@ export function App() {
   }, [settings.cameraMode, updateSetting]);
 
   return (
-    <div className="relative w-full h-full overflow-hidden select-none bg-slate-950 font-sans">
-      {/* 1. Header Navigation */}
+    <div className="relative w-full h-full overflow-hidden select-none bg-slate-950 font-sans text-slate-100 antialiased">
+      {/* 1. Header Command Bar with Search, Theme Swatches & Actions */}
       <Header
+        text={settings.text}
+        onTextChange={(val) => updateSetting('text', val)}
         theme={settings.theme}
         onThemeChange={handleThemeChange}
         onOpenShare={() => setIsShareOpen(true)}
         onDownloadPNG={handleDownloadPNG}
       />
 
-      {/* 2. Left Control Panel */}
-      <ControlPanel settings={settings} onUpdate={updateSetting} />
-
-      {/* 3. Bottom View Mode Switch */}
+      {/* 2. Precision Floating Island Control Dock */}
       <ViewSwitch
         mode={settings.cameraMode}
         onModeChange={(mode) => updateSetting('cameraMode', mode)}
+        autoRotate={settings.autoRotate}
+        onToggleAutoRotate={() => updateSetting('autoRotate', !settings.autoRotate)}
+        particlesEnabled={settings.particlesEnabled}
+        onToggleParticles={() => updateSetting('particlesEnabled', !settings.particlesEnabled)}
+        gridSize={qrData.size}
       />
 
-      {/* 4. Main 3D Canvas Scene with tap-to-morph */}
+      {/* 3. Main 3D Canvas Scene with tap-to-morph */}
       <SceneContainer
         ref={sceneRef}
         qrData={qrData}
@@ -64,7 +67,7 @@ export function App() {
         onToggleMode={handleToggleMode}
       />
 
-      {/* 5. Share & Export Modal */}
+      {/* 4. Share & Export Modal */}
       <ShareModal
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
