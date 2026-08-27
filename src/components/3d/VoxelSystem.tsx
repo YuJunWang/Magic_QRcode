@@ -96,10 +96,13 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
         // Sinusoidal harmonics for natural wind-swept contour
         const harmonicWave = (Math.sin(angle * 3 + 1.2) * 0.15 + Math.cos(angle * 2 - 0.8) * 0.2) * (1 - dist / maxCanopyRadius);
 
-        if (dist <= 1.4) {
-          // --- 1. SINGLE CENTRAL TRUNK (Low to High) ---
-          // Main trunk rises straight up from y=0 through the clear zone into the high canopy
-          const trunkH = baseTreeHeight * 0.72;
+        // Strict single-column central trunk condition
+        const isCenterTrunk = Math.abs(x) < 0.75 && Math.abs(z) < 0.75;
+
+        if (isCenterTrunk) {
+          // --- 1. SLENDER SINGLE CENTRAL TRUNK ---
+          // Exactly 1 module wide, rises cleanly through the open space into the canopy
+          const trunkH = baseTreeHeight * 0.70;
           trunk.push({
             x,
             y: trunkH / 2,
@@ -108,7 +111,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
             height: trunkH,
           });
 
-          // Dense summit foliage directly crowning the main trunk
+          // Dense summit foliage capping the top of the trunk
           foliage.push({
             x,
             y: baseTreeHeight * 0.96 + rand1 * 3.0,
@@ -133,7 +136,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
             // Distribute layers from bottom of canopy up to peakY
             const layerY = i === 0 ? peakY : Math.max(trunkClearanceY, peakY - i * (2.8 + rand3 * 1.5));
             
-            // Color variation: lighter near peak and sun-exposed edges, deeper in interior
+            // Color variation: lighter near peak, deeper inside
             let leafColor = primaryLeaf;
             if (i === 0 && rand1 > 0.25) leafColor = accentLeaf;
             else if (i > 3 || rand1 > 0.65) leafColor = secondaryLeaf;
@@ -147,27 +150,16 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
             });
           }
 
-          // --- 3. NATURAL BRANCHING ARCHITECTURE ---
-          // Rule: NO side branches below trunkClearanceY * 0.8.
-          // Branches start at y >= trunkClearanceY * 0.85 and reach upward-outward towards leaf clusters!
-          const branchStartHeight = trunkClearanceY * 0.85;
-          const branchMaxDist = maxCanopyRadius * 0.68;
-
-          // Branch probability increases with height and closeness to canopy lobes
-          if (dist <= branchMaxDist && (rand1 > 0.52 || lobe1 > 0.3 || lobe2 > 0.3 || lobe3 > 0.3)) {
-            // Branch segment connects from just below canopy bottom up towards the leaf tier
-            const branchH = (peakY - branchStartHeight) * 0.55 * (0.6 + rand2 * 0.4);
-            const branchCenterY = branchStartHeight + branchH / 2;
-
-            if (branchH > 1.0) {
-              trunk.push({
-                x,
-                y: branchCenterY,
-                z,
-                color: trunkColor,
-                height: branchH,
-              });
-            }
+          // --- 3. SUBTLE HIGH-ALTITUDE BRANCH SUPPORTS ---
+          // Only tiny branch nodes tucked directly under the canopy at high altitude, NEVER reaching low ground
+          if (dist <= 2.8 && rand1 > 0.65) {
+            trunk.push({
+              x,
+              y: trunkClearanceY + 0.6,
+              z,
+              color: trunkColor,
+              height: 1.2,
+            });
           }
         } else {
           // --- 4. PERIPHERAL GROUND GRASS & FLOWERBEDS ---
