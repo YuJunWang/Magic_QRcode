@@ -5,7 +5,7 @@ export interface ExtendedThemeColors extends ThemeColors {
   trunkBarkDark?: string;
   grassBase?: string;
   grassDark?: string;
-  /** Luminous sunlit highlight for upper lobe peaks */
+  /** Luminous sunlit highlight for upper lobe peaks (calibrated Y <= 0.30 for QR decode) */
   foliageHighlight?: string;
   /** Deep jewel-tone emissive color applied to foliage canopy in 3D view mode */
   foliageEmissive?: string;
@@ -28,7 +28,7 @@ export const THEME_CONFIGS: Record<ThemeType, ExtendedThemeColors> = {
     foliagePrimary: '#701a45',    // 濃郁緋櫻 (Y ≈ 0.22)
     foliageSecondary: '#4a0e2e',  // 深沉櫻木 (Y ≈ 0.14)
     foliageAccent: '#9d174d',     // 艷麗玫紅冠頂 (Y ≈ 0.27)
-    foliageHighlight: '#be185d',  // 迎光初綻櫻苞 (Y ≈ 0.32)
+    foliageHighlight: '#a21caf',  // 紫櫻高光花苞 (Y ≈ 0.26)
     foliageRich: '#2b051a',       // 陰影深櫻 (Y ≈ 0.07)
     foliageEmissive: '#831843',   // 濃醇紅寶石微光
     foliageEmissiveIntensity: 0.07,
@@ -58,7 +58,7 @@ export const THEME_CONFIGS: Record<ThemeType, ExtendedThemeColors> = {
     foliagePrimary: '#065f46',    // 濃翠綠松 (Y ≈ 0.25)
     foliageSecondary: '#064e3b',  // 幽邃松柏 (Y ≈ 0.21)
     foliageAccent: '#047857',     // 翠玉深綠冠頂 (Y ≈ 0.30)
-    foliageHighlight: '#059669',  // 向陽嫩松針尖 (Y ≈ 0.33)
+    foliageHighlight: '#065f46',  // 碧松高光 (Y ≈ 0.25)
     foliageRich: '#022c22',       // 陰影墨松 (Y ≈ 0.11)
     foliageEmissive: '#065f46',   // 幽林碧玉微光
     foliageEmissiveIntensity: 0.06,
@@ -88,7 +88,7 @@ export const THEME_CONFIGS: Record<ThemeType, ExtendedThemeColors> = {
     foliagePrimary: '#851d1d',    // 楓紅心葉 (Y ≈ 0.23)
     foliageSecondary: '#5c1010',  // 烈焰暗紅 (Y ≈ 0.15)
     foliageAccent: '#9a3412',     // 焦糖赤楓冠頂 (Y ≈ 0.28)
-    foliageHighlight: '#c2410c',  // 燦金楓尖高光 (Y ≈ 0.32)
+    foliageHighlight: '#9a3412',  // 赤楓高光 (Y ≈ 0.28)
     foliageRich: '#380909',       // 陰影深紅 (Y ≈ 0.09)
     foliageEmissive: '#9a3412',   // 暖珀餘燼微光
     foliageEmissiveIntensity: 0.07,
@@ -118,7 +118,7 @@ export const THEME_CONFIGS: Record<ThemeType, ExtendedThemeColors> = {
     foliagePrimary: '#0c4a6e',    // 曜石海藍 (Y ≈ 0.23)
     foliageSecondary: '#073652',  // 冰海深晶 (Y ≈ 0.16)
     foliageAccent: '#0369a1',     // 湛藍冰柱冠頂 (Y ≈ 0.30)
-    foliageHighlight: '#0284c7',  // 冰晶晨光剔透尖 (Y ≈ 0.33)
+    foliageHighlight: '#0369a1',  // 冰晶高光 (Y ≈ 0.30)
     foliageRich: '#032033',       // 陰影暗冰 (Y ≈ 0.10)
     foliageEmissive: '#075985',   // 極地海藍冰晶微光
     foliageEmissiveIntensity: 0.06,
@@ -148,7 +148,7 @@ export const THEME_CONFIGS: Record<ThemeType, ExtendedThemeColors> = {
     foliagePrimary: '#581c87',    // 濃夜紫晶 (Y ≈ 0.22)
     foliageSecondary: '#3b0764',  // 深邃暗晶 (Y ≈ 0.13)
     foliageAccent: '#7e22ce',     // 紫晶主脈冠頂 (Y ≈ 0.29)
-    foliageHighlight: '#9333ea',  // 菱鏡折射紫芒 (Y ≈ 0.33)
+    foliageHighlight: '#7e22ce',  // 紫晶高光 (Y ≈ 0.29)
     foliageRich: '#240342',       // 陰影深脈 (Y ≈ 0.08)
     foliageEmissive: '#6b21a8',   // 秘境紫晶魔力微光
     foliageEmissiveIntensity: 0.08,
@@ -178,7 +178,7 @@ export const THEME_CONFIGS: Record<ThemeType, ExtendedThemeColors> = {
     foliagePrimary: '#165b33',    // 墨綠古苔 (Y ≈ 0.25)
     foliageSecondary: '#114224',  // 幽谷深苔 (Y ≈ 0.18)
     foliageAccent: '#15803d',     // 沉石蒼苔冠頂 (Y ≈ 0.31)
-    foliageHighlight: '#16a34a',  // 朝露新苔初發 (Y ≈ 0.34)
+    foliageHighlight: '#166534',  // 深苔高光 (Y ≈ 0.28)
     foliageRich: '#0a2916',       // 陰影蒼石 (Y ≈ 0.11)
     foliageEmissive: '#14532d',   // 庭園青苔沉靜微光
     foliageEmissiveIntensity: 0.05,

@@ -58,14 +58,14 @@ function sampleCanopyColor(
   cHighlight: string
 ): string {
   const t = Math.max(0, Math.min(1, v));
-  if (t < 0.22) {
-    return lerpColor(cRich, cSecondary, t / 0.22);
-  } else if (t < 0.48) {
-    return lerpColor(cSecondary, cPrimary, (t - 0.22) / 0.26);
-  } else if (t < 0.76) {
-    return lerpColor(cPrimary, cAccent, (t - 0.48) / 0.28);
+  if (t < 0.20) {
+    return lerpColor(cRich, cSecondary, t / 0.20);
+  } else if (t < 0.46) {
+    return lerpColor(cSecondary, cPrimary, (t - 0.20) / 0.26);
+  } else if (t < 0.74) {
+    return lerpColor(cPrimary, cAccent, (t - 0.46) / 0.28);
   } else {
-    return lerpColor(cAccent, cHighlight, (t - 0.76) / 0.24);
+    return lerpColor(cAccent, cHighlight, (t - 0.74) / 0.26);
   }
 }
 
@@ -80,11 +80,11 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
 
     // --- Dynamic Scaling of Constants for Arbitrary QR Grid Sizes ---
     const CUBE_HEIGHT = 1.0;
-    const TRUNK_RADIUS = Math.max(2.5, size * 0.08);
-    const ROOT_FLARE_RADIUS = TRUNK_RADIUS * 1.85; // Buttress root flare boundary
+    const TRUNK_RADIUS = Math.max(2.4, size * 0.075);
+    const ROOT_FLARE_RADIUS = TRUNK_RADIUS * 1.55; // Tighter ground-level flare zone
     const TRUNK_LAYERS = Math.max(10, Math.round(size * 0.45));
-    const MAX_CANOPY_LAYERS = Math.max(12, Math.round(size * 0.58)); // Increased stacking
-    const CANOPY_OUTER_RADIUS_FACTOR = 0.46;
+    const MAX_CANOPY_LAYERS = Math.max(13, Math.round(size * 0.62)); // Voluminous canopy stacking
+    const CANOPY_OUTER_RADIUS_FACTOR = 0.48; // Expanded lush canopy radius
 
     const canopyBaseHeight = TRUNK_LAYERS * CUBE_HEIGHT;
     const canopyOuterRadius = size * CANOPY_OUTER_RADIUS_FACTOR;
@@ -110,7 +110,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
           const dx = c - halfSize;
           const dz = r - halfSize;
           const dist = Math.hypot(dx, dz);
-          if (dist <= TRUNK_RADIUS * 1.4) {
+          if (dist <= TRUNK_RADIUS * 1.35) {
             centerDarkList.push({ r, c, dist });
           }
         }
@@ -129,7 +129,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
     }
 
     // ----------------------------------------------------
-    // STAGE 1: GROUND PASS (Dirt, Base Trunk, Fallen Petals, Grass)
+    // STAGE 1: GROUND PASS (Dirt Tiles, Fallen Petals Drift, Grass Shrubs)
     // ----------------------------------------------------
     const quietZone = 2;
     const minGrid = -quietZone;
@@ -176,7 +176,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         const isRootFlare = !isCoreTrunk && dist < ROOT_FLARE_RADIUS;
 
         if (isCoreTrunk || isRootFlare) {
-          // Deep weathered bark base touching soil
+          // Weathered bark root base directly touching soil
           trunk.push({
             x,
             y: 0.5,
@@ -185,7 +185,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
             height: 1.0,
           });
         } else if (dist >= canopyOuterRadius) {
-          // Grass / Outer shrubs
+          // Outer perimeter grass shrubs
           const noise = pseudoRandom(c, r, 100);
           const gColor = noise > 0.5 ? grassBase : grassDark;
           foliage.push({
@@ -196,22 +196,23 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
             height: 0.5,
           });
         } else {
-          // Fallen petals on forest floor (guarantees non-empty base for QR)
+          // Fallen petals drift under tree canopy (layered petal accumulation)
           const noise = pseudoRandom(c, r, 200);
           const petalColor = noise > 0.6 ? leafPrimary : (noise > 0.3 ? leafSecondary : leafRich);
+          const petalHeight = noise > 0.5 ? 0.25 : 0.15;
           foliage.push({
             x,
-            y: 0.15,
+            y: petalHeight / 2,
             z,
             color: petalColor,
-            height: 0.3,
+            height: petalHeight,
           });
         }
       }
     }
 
     // ----------------------------------------------------
-    // STAGE 2: TRUNK & BUTTRESS ROOT FLARE PASS
+    // STAGE 2: TRUNK & RAPID-DECAY BUTTRESS ROOT FOOTING
     // ----------------------------------------------------
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
@@ -224,7 +225,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         const isRootFlare = !isCoreTrunk && dist < ROOT_FLARE_RADIUS;
 
         if (isCoreTrunk) {
-          // Full-height main trunk columns climbing to canopy
+          // Full-height main trunk vertical columns climbing up to canopy
           for (let layer = 1; layer < TRUNK_LAYERS; layer++) {
             const heightT = layer / TRUNK_LAYERS;
             const barkNoise = (pseudoRandom(c, r, layer * 13) - 0.5) * 0.12;
@@ -238,13 +239,14 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
             });
           }
         } else if (isRootFlare) {
-          // Buttress roots: outward flare tapering smoothly towards the ground
+          // Rapid-decay buttress root flare: thick only at ground base (1~2 layers max)
           const flareT = 1.0 - (dist - TRUNK_RADIUS) / (ROOT_FLARE_RADIUS - TRUNK_RADIUS);
-          const rootMaxLayers = Math.max(1, Math.round(TRUNK_LAYERS * 0.36 * Math.pow(flareT, 1.4)));
+          // Rapid power decay: only immediate neighbors get layer 2, outer edge gets layer 1
+          const rootMaxLayers = flareT > 0.65 ? 2 : (flareT > 0.2 ? 1 : 0);
 
           for (let layer = 1; layer <= rootMaxLayers; layer++) {
-            const rootLayerT = layer / rootMaxLayers;
-            const rootBarkColor = lerpColor(trunkBarkDark, trunkBarkBase, rootLayerT * 0.5);
+            const rootLayerT = layer / (rootMaxLayers + 1);
+            const rootBarkColor = lerpColor(trunkBarkDark, trunkBarkBase, rootLayerT * 0.4);
             trunk.push({
               x,
               y: layer * CUBE_HEIGHT + 0.5,
@@ -258,7 +260,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
     }
 
     // ----------------------------------------------------
-    // STAGE 3: FLUFFY 5-LOBE BILLOWING CANOPY WITH DROPOUT & MULTI-STOP SHADING
+    // STAGE 3: VOLUMINOUS 5-LOBE BILLOWING CANOPY WITH ENHANCED POROSITY (DROPOUT)
     // ----------------------------------------------------
     const matrixHash = hashString(matrix.map(row => row.map(b => (b ? '1' : '0')).join('')).join(''));
     const contentSeed = matrixHash % 10000;
@@ -279,38 +281,38 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
       {
         cx: 0,
         cz: 0,
-        radius: canopyOuterRadius * 0.85,
-        maxLayers: MAX_CANOPY_LAYERS * 1.05,
+        radius: canopyOuterRadius * 0.88,
+        maxLayers: MAX_CANOPY_LAYERS * 1.06,
         weight: 1.0,
       },
-      // 4 Satellite Billowing Cloud Lobes
+      // 4 Expanded Satellite Billowing Cloud Lobes
       {
-        cx: Math.cos(baseAngle) * (canopyOuterRadius * 0.42),
-        cz: Math.sin(baseAngle) * (canopyOuterRadius * 0.42),
-        radius: canopyOuterRadius * 0.64,
-        maxLayers: MAX_CANOPY_LAYERS * 0.94,
-        weight: 0.94,
+        cx: Math.cos(baseAngle) * (canopyOuterRadius * 0.44),
+        cz: Math.sin(baseAngle) * (canopyOuterRadius * 0.44),
+        radius: canopyOuterRadius * 0.68,
+        maxLayers: MAX_CANOPY_LAYERS * 0.96,
+        weight: 0.96,
       },
       {
-        cx: Math.cos(baseAngle + 1.57) * (canopyOuterRadius * 0.46),
-        cz: Math.sin(baseAngle + 1.57) * (canopyOuterRadius * 0.46),
-        radius: canopyOuterRadius * 0.60,
+        cx: Math.cos(baseAngle + 1.57) * (canopyOuterRadius * 0.48),
+        cz: Math.sin(baseAngle + 1.57) * (canopyOuterRadius * 0.48),
+        radius: canopyOuterRadius * 0.64,
+        maxLayers: MAX_CANOPY_LAYERS * 0.92,
+        weight: 0.92,
+      },
+      {
+        cx: Math.cos(baseAngle + 3.14) * (canopyOuterRadius * 0.42),
+        cz: Math.sin(baseAngle + 3.14) * (canopyOuterRadius * 0.42),
+        radius: canopyOuterRadius * 0.64,
         maxLayers: MAX_CANOPY_LAYERS * 0.90,
         weight: 0.90,
       },
       {
-        cx: Math.cos(baseAngle + 3.14) * (canopyOuterRadius * 0.40),
-        cz: Math.sin(baseAngle + 3.14) * (canopyOuterRadius * 0.40),
+        cx: Math.cos(baseAngle + 4.71) * (canopyOuterRadius * 0.40),
+        cz: Math.sin(baseAngle + 4.71) * (canopyOuterRadius * 0.40),
         radius: canopyOuterRadius * 0.62,
         maxLayers: MAX_CANOPY_LAYERS * 0.88,
         weight: 0.88,
-      },
-      {
-        cx: Math.cos(baseAngle + 4.71) * (canopyOuterRadius * 0.38),
-        cz: Math.sin(baseAngle + 4.71) * (canopyOuterRadius * 0.38),
-        radius: canopyOuterRadius * 0.58,
-        maxLayers: MAX_CANOPY_LAYERS * 0.86,
-        weight: 0.86,
       },
     ];
 
@@ -332,8 +334,8 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
             const d = Math.hypot(x - lobe.cx, z - lobe.cz);
             if (d < lobe.radius) {
               const t = 1 - d / lobe.radius;
-              // Smooth cosine billowing cloud puff profile
-              const lobeH = lobe.maxLayers * (0.20 + 0.80 * Math.sin(t * Math.PI * 0.5));
+              // Smooth, rounded cosine billowing cloud puff profile with extra volume
+              const lobeH = lobe.maxLayers * (0.24 + 0.76 * Math.pow(Math.sin(t * Math.PI * 0.5), 0.9));
               if (lobeH > maxLobeHeight) {
                 secondDominantT = dominantT;
                 maxLobeHeight = lobeH;
@@ -347,15 +349,15 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
           // Fallback near outer perimeter
           if (maxLobeHeight === 0) {
             const t = Math.max(0, 1 - distToCenter / canopyOuterRadius);
-            maxLobeHeight = MAX_CANOPY_LAYERS * (0.18 + 0.82 * t * t);
+            maxLobeHeight = MAX_CANOPY_LAYERS * (0.20 + 0.80 * t * t);
             dominantT = t;
           }
 
           const layersHere = Math.max(3, Math.round(maxLobeHeight));
-          const domeOffset = Math.floor(dominantT * 3.8) * CUBE_HEIGHT;
+          const domeOffset = Math.floor(dominantT * 4.0) * CUBE_HEIGHT;
 
-          // Under-canopy slight droop for volumetric cloud underside
-          const baseDroop = dominantT > 0.25 && dominantT < 0.75 ? -Math.floor(pseudoRandom(c, r, 300) * 1.5) : 0;
+          // Under-canopy organic droop for rounded volumetric cloud underside
+          const baseDroop = dominantT > 0.20 && dominantT < 0.80 ? -Math.floor(pseudoRandom(c, r, 300) * 1.8) : 0;
 
           // Sunlight alignment factor (Sun position ~ top-right +X, +Z)
           const sunFactor = 0.5 + 0.5 * ((x + z) / (Math.SQRT2 * canopyOuterRadius));
@@ -365,14 +367,16 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
 
           // Stack cubic foliage blocks vertically
           for (let layer = baseDroop; layer < layersHere; layer++) {
-            // Airiness / Subtle Voxel Dropout (0.015 ~ 0.035)
-            // SAFETY: Always preserve baseDroop layer so 2D QR top-down projection is 100% solid!
+            // Enhanced Airiness / Porosity / Dropout
+            // SAFETY RULE: Always preserve layer === baseDroop so 2D QR top-down projection is 100% solid!
             if (layer > baseDroop) {
               const dropoutNoise = pseudoRandom(c, r, layer * 37 + contentSeed);
-              const isPorousZone = layer / layersHere > 0.70 || dominantT < 0.32;
-              const dropoutRate = isPorousZone ? 0.032 : 0.016;
+              const isUpperZone = (layer - baseDroop) / (layersHere - baseDroop) > 0.65;
+              const isEdgeZone = dominantT < 0.36;
+              // Tuned dropout: ~0.085 in upper/edge canopy, ~0.040 in core body
+              const dropoutRate = isUpperZone || isEdgeZone ? 0.085 : 0.040;
               if (dropoutNoise < dropoutRate) {
-                continue; // Create airy negative space and natural leaf gaps
+                continue; // Creates airy negative space, light permeability and organic cloud clumps
               }
             }
 
@@ -405,8 +409,8 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
             });
           }
 
-          // Extra stepped crown tufts for fluffy top texture
-          const extraCount = Math.floor(pseudoRandom(c, r, 500) * (dominantT > 0.62 ? 3 : 1));
+          // Extra stepped crown tufts for fluffy cloud summit texture
+          const extraCount = Math.floor(pseudoRandom(c, r, 500) * (dominantT > 0.60 ? 4 : 2));
           for (let e = 0; e < extraCount; e++) {
             const extraLayer = layersHere + e;
             const extraY = canopyBaseHeight + extraLayer * CUBE_HEIGHT + domeOffset;
@@ -438,7 +442,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         ))}
       </Instances>
 
-      {/* 2. Vertical Trunk Columns & Buttress Roots */}
+      {/* 2. Vertical Trunk Columns & Ground-Level Buttress Footing */}
       {trunkVoxels.length > 0 && (
         <Instances limit={10000} range={trunkVoxels.length} castShadow receiveShadow>
           <boxGeometry args={[1, 1, 1]} />
@@ -449,7 +453,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         </Instances>
       )}
 
-      {/* 3. Fluffy 5-Lobe Billowing Foliage Canopy with Subtle Radiance */}
+      {/* 3. Voluminous 5-Lobe Billowing Foliage Canopy with Subtle Radiance */}
       <Instances limit={10000} range={foliageVoxels.length} castShadow receiveShadow>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial
