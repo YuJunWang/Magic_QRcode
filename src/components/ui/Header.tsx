@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <a
-          href="https://github.com"
+          href="https://github.com/YuJunWang/Magic_QRcode"
           target="_blank"
           rel="noreferrer"
           className="glass-pill p-2 rounded-full text-slate-400 hover:text-white transition-all shadow-lg hover:bg-slate-800/80"
