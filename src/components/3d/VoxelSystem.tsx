@@ -80,13 +80,14 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
         const rand2 = (seed * 10) % 1;
         const rand3 = (seed * 100) % 1;
 
-        // Tree canopy envelope scaled to grid size - high volume
-        const maxCanopyRadius = halfSize * 0.68;
-        const baseTreeHeight = Math.max(16, size * 0.48) * elevation;
+        // Tree canopy envelope scaled to grid size - much taller and distinctly elevated
+        const maxCanopyRadius = halfSize * 0.65;
+        const baseTreeHeight = Math.max(22, size * 0.68) * elevation;
+        const bottomCanopyY = baseTreeHeight * 0.38; // Lift canopy well above ground plaza
 
         if (dist <= 2.2) {
-          // Central Trunk Column
-          const trunkH = baseTreeHeight * 0.6;
+          // Central Trunk Column (rises straight up into the canopy)
+          const trunkH = baseTreeHeight * 0.65;
           trunk.push({
             x,
             y: trunkH / 2,
@@ -95,51 +96,51 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
             height: trunkH,
           });
 
-          // Dense top foliage over trunk
+          // Dense top foliage over the center trunk
           foliage.push({
             x,
-            y: baseTreeHeight * 0.9 + rand1 * 2.0,
+            y: baseTreeHeight * 0.95 + rand1 * 2.5,
             z,
             color: secondaryLeaf,
-            height: 0.12,
+            height: 0.15,
           });
         } else if (dist <= maxCanopyRadius) {
-          // Main Foliage Canopy (Tapered dome / umbrella crown)
+          // Main Foliage Canopy (Tall, stately dome / umbrella crown)
           const normalizedDist = dist / maxCanopyRadius;
-          const domeHeight = (baseTreeHeight * 0.35 + Math.pow(1 - normalizedDist, 1.1) * (baseTreeHeight * 0.65));
-          const noise = Math.sin(x * 0.5) * Math.cos(z * 0.5) * 2.2;
-          const peakY = Math.max(baseTreeHeight * 0.35, domeHeight + noise);
+          const domeHeight = bottomCanopyY + Math.pow(1 - normalizedDist, 1.1) * (baseTreeHeight - bottomCanopyY);
+          const noise = Math.sin(x * 0.5) * Math.cos(z * 0.5) * 2.5;
+          const peakY = Math.max(bottomCanopyY + 1.0, domeHeight + noise);
 
-          // Number of tiered horizontal leaf layers (3 to 5 layers for thick canopy)
-          const numLayers = Math.floor(rand2 * 3) + 3;
-          const bottomY = baseTreeHeight * 0.28;
+          // Number of tiered horizontal leaf layers (4 to 6 layers for maximum lushness)
+          const numLayers = Math.floor(rand2 * 3) + 4;
 
           for (let i = 0; i < numLayers; i++) {
-            // Distribute layers vertically
-            const layerY = i === 0 ? peakY : Math.max(bottomY, peakY - i * (2.0 + rand3 * 1.0));
+            // Distribute layers vertically between bottomCanopyY and peakY
+            const layerY = i === 0 ? peakY : Math.max(bottomCanopyY, peakY - i * (2.4 + rand3 * 1.2));
             
-            // Color variation across layers
+            // Color variation across layers (lighter near top, deeper inside)
             let leafColor = primaryLeaf;
-            if (i === 0 && rand1 > 0.35) leafColor = accentLeaf;
-            else if (rand1 > 0.65) leafColor = secondaryLeaf;
+            if (i === 0 && rand1 > 0.3) leafColor = accentLeaf;
+            else if (i > 2 || rand1 > 0.65) leafColor = secondaryLeaf;
 
             foliage.push({
               x,
               y: layerY,
               z,
               color: leafColor,
-              height: 0.12,
+              height: 0.15,
             });
           }
 
-          // Spawn sturdy wooden branches beneath thick foliage clusters
-          if (rand1 > 0.6 && dist < maxCanopyRadius * 0.6) {
+          // Supporting wooden branches extending under thick foliage
+          if (rand1 > 0.55 && dist < maxCanopyRadius * 0.65) {
+            const branchH = bottomCanopyY * (0.6 + rand2 * 0.35);
             trunk.push({
               x,
-              y: bottomY * 0.75,
+              y: branchH / 2 + (bottomCanopyY - branchH),
               z,
               color: trunkColor,
-              height: bottomY * 0.9,
+              height: branchH,
             });
           }
         } else {

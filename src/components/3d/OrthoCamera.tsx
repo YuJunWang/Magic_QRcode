@@ -25,7 +25,7 @@ export function OrthoCamera({ viewMode, gridSize }: OrthoCameraProps) {
       // Top-down Orthographic Scan Mode
       gsap.to(cameraRef.current.position, {
         x: 0,
-        y: 120,
+        y: 140,
         z: 0,
         duration: 1.2,
         ease: 'power3.inOut',
@@ -38,33 +38,36 @@ export function OrthoCamera({ viewMode, gridSize }: OrthoCameraProps) {
         onUpdate: () => cameraRef.current.updateProjectionMatrix(),
       });
     } else {
-      // Isometric 3D Tree View (Centered on the volumetric tree)
+      // Isometric 3D Tree View (Pulled back, centered on the middle of the tall tree)
+      const treeMidY = Math.max(8, gridSize * 0.25);
       gsap.to(cameraRef.current.position, {
-        x: 70,
-        y: 65,
-        z: 70,
+        x: 95,
+        y: 85,
+        z: 95,
         duration: 1.2,
         ease: 'power3.inOut',
-        onUpdate: () => cameraRef.current.lookAt(0, 4.0, 0),
+        onUpdate: () => cameraRef.current.lookAt(0, treeMidY, 0),
       });
       gsap.to(cameraRef.current, {
-        zoom: baseZoom * 0.95,
+        zoom: baseZoom * 0.72, // Pulled back comfortably so the full tall tree and base are visible
         duration: 1.2,
         ease: 'power3.inOut',
         onUpdate: () => cameraRef.current.updateProjectionMatrix(),
       });
     }
-  }, [viewMode, baseZoom]);
+  }, [viewMode, baseZoom, gridSize]);
+
+  const treeMidY = Math.max(8, gridSize * 0.25);
 
   return (
     <OrthographicCamera
       ref={cameraRef}
       makeDefault
-      position={viewMode === '2d' ? [0, 100, 0] : [60, 60, 60]}
-      zoom={viewMode === '2d' ? baseZoom : baseZoom * 0.82}
+      position={viewMode === '2d' ? [0, 140, 0] : [95, 85, 95]}
+      zoom={viewMode === '2d' ? baseZoom : baseZoom * 0.72}
       near={0.1}
       far={1000}
-      onUpdate={(c) => c.lookAt(0, viewMode === '2d' ? 0 : 2.5, 0)}
+      onUpdate={(c) => c.lookAt(0, viewMode === '2d' ? 0 : treeMidY, 0)}
     />
   );
 }
