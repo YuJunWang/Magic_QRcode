@@ -1,5 +1,7 @@
 # ✨ Magic QR 3D — 互動式 3D QR Code 景觀產生器
 
+👉 **[快速預覽 / Live Demo](https://yujunwang.github.io/Magic_QRcode/)** 👈
+
 > 一個基於 **React 19 + Three.js (React Three Fiber) + Tailwind CSS** 的純前端 3D QR Code 產生器，專為 **GitHub Pages (`github.io`)** 靜態託管打造，無需後端與資料庫即可實現 3D 視覺化與免後端 URL 分享。
 
 ---
