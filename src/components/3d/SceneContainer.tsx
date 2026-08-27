@@ -95,6 +95,7 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
             <VoxelSystem 
               qrData={qrData} 
               viewMode={settings.cameraMode === 'scan' ? '2d' : '3d'} 
+              themeColors={colors}
             />
           </group>
         </Canvas>

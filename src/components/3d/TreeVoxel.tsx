@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useMemo } from 'react';
 import { Instance } from '@react-three/drei';
+import * as THREE from 'three';
 import gsap from 'gsap';
 
 export interface VoxelData {
@@ -47,6 +48,10 @@ export function TreeVoxel({ x, y, z, color, isMorphable, baseScaleY = 1, viewMod
     };
   }, [x, y, z, isMorphable, baseScaleY]);
 
+  const originalColor = useMemo(() => new THREE.Color(color), [color]);
+  // Use a very dark grey/black for the 2D QR scan mode to guarantee contrast
+  const qrBlackColor = useMemo(() => new THREE.Color('#0f172a'), []);
+
   useLayoutEffect(() => {
     if (!ref.current) return;
 
@@ -66,6 +71,16 @@ export function TreeVoxel({ x, y, z, color, isMorphable, baseScaleY = 1, viewMod
         duration: 1.2,
         ease: 'power3.inOut',
       });
+      // Morph black modules to pure black for 100% scan rate
+      if (color !== '#f3f4f6') { // Don't morph the white ground
+        gsap.to(ref.current.color, {
+          r: qrBlackColor.r,
+          g: qrBlackColor.g,
+          b: qrBlackColor.b,
+          duration: 1.2,
+          ease: 'power3.inOut',
+        });
+      }
     } else {
       // Expand to Organic 3D Tree Mode
       gsap.to(ref.current.rotation, {
@@ -82,11 +97,21 @@ export function TreeVoxel({ x, y, z, color, isMorphable, baseScaleY = 1, viewMod
         duration: 1.2,
         ease: 'power3.inOut',
       });
+      if (color !== '#f3f4f6') {
+        gsap.to(ref.current.color, {
+          r: originalColor.r,
+          g: originalColor.g,
+          b: originalColor.b,
+          duration: 1.2,
+          ease: 'power3.inOut',
+        });
+      }
     }
-  }, [viewMode, organicState]);
+  }, [viewMode, organicState, color, originalColor, qrBlackColor]);
 
   const initialScale = viewMode === '2d' ? [1, 0.1, 1] : [organicState.scaleX, organicState.scaleY, organicState.scaleZ];
   const initialRot = viewMode === '2d' ? [0, 0, 0] : [organicState.rotX, organicState.rotY, organicState.rotZ];
+  const initialColor = viewMode === '2d' && color !== '#f3f4f6' ? qrBlackColor : originalColor;
 
   return (
     <Instance
@@ -96,7 +121,7 @@ export function TreeVoxel({ x, y, z, color, isMorphable, baseScaleY = 1, viewMod
       scale={initialScale}
       // @ts-ignore
       rotation={initialRot}
-      color={color}
+      color={initialColor}
     />
   );
 }

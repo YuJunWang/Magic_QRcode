@@ -6,9 +6,10 @@ import type { QRMatrixData } from '../../types';
 interface VoxelSystemProps {
   qrData: QRMatrixData;
   viewMode: '2d' | '3d';
+  themeColors: any;
 }
 
-export function VoxelSystem({ qrData, viewMode }: VoxelSystemProps) {
+export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps) {
   const { size, matrix, isFinderPattern } = qrData;
   const halfSize = (size - 1) / 2;
 
@@ -18,10 +19,10 @@ export function VoxelSystem({ qrData, viewMode }: VoxelSystemProps) {
     // Colors
     const colorWhite = '#f3f4f6'; // Light ground
     const colorBlack = '#111827'; // Finder pattern
-    const colorTrunk = '#78350f'; // Brown
-    const colorLeaf1 = '#22c55e'; // Green
-    const colorLeaf2 = '#16a34a'; // Dark green
-    const colorGrass = '#4ade80'; // Light green
+    const colorTrunk = themeColors.trunkColor || '#78350f'; 
+    const colorLeaf1 = themeColors.foliagePrimary || '#22c55e';
+    const colorLeaf2 = themeColors.foliageSecondary || '#16a34a';
+    const colorGrass = themeColors.foliagePrimary || '#4ade80';
 
     let darkIndex = 0;
 
@@ -30,7 +31,6 @@ export function VoxelSystem({ qrData, viewMode }: VoxelSystemProps) {
         const x = c - halfSize;
         const z = r - halfSize;
         const dist = Math.sqrt(x * x + z * z);
-        const normalizedDist = dist / Math.max(halfSize, 1);
 
         if (!matrix[r][c]) {
           // White Modules - Solid Ground
@@ -45,8 +45,19 @@ export function VoxelSystem({ qrData, viewMode }: VoxelSystemProps) {
           continue;
         }
 
+        // --- Black Modules ---
+        // Always spawn a solid dark base tile to guarantee QR contrast in 2D
+        data.push({
+          x,
+          y: -0.01,
+          z,
+          color: colorBlack,
+          isMorphable: false,
+          baseScaleY: 0.12,
+        });
+
         if (isFinderPattern(r, c)) {
-          // Finder Pattern Corners
+          // Finder Pattern Corners (just the base is enough, or maybe make it a slightly raised box)
           data.push({
             x,
             y: 0.2,
@@ -58,14 +69,14 @@ export function VoxelSystem({ qrData, viewMode }: VoxelSystemProps) {
           continue;
         }
 
-        // Black Modules - Procedural Generation
+        // Procedural Generation for Tree/Grass on top of the black base
         darkIndex++;
         const seed = (darkIndex * 9301 + 49297) % 233280;
         const rand1 = seed / 233280.0;
         const rand2 = ((seed * 9301 + 49297) % 233280) / 233280.0;
         const rand3 = ((seed * 12345 + 6789) % 233280) / 233280.0;
 
-        // Trunk Check (Central area)
+        // Ensure trunk is centered, canopy is grouped around it
         const isTrunk = Math.abs(x) <= 1 && Math.abs(z) <= 1;
 
         if (isTrunk) {
@@ -86,18 +97,21 @@ export function VoxelSystem({ qrData, viewMode }: VoxelSystemProps) {
             color: colorLeaf2,
             isMorphable: true,
           });
-        } else if (normalizedDist < 0.6) {
-          // Main Canopy (Denser, taller)
-          const domeHeight = Math.max(0, 1 - Math.pow(normalizedDist, 1.2)) * 6.5;
+        } else if (dist < halfSize * 0.75) { 
+          // Main Canopy (Denser in the middle, fading out)
+          // Use absolute distance rather than normalized to avoid making a huge rectangle
+          const maxRadius = halfSize * 0.75;
+          const distFactor = Math.max(0, 1 - Math.pow(dist / maxRadius, 1.5));
+          const domeHeight = distFactor * 6.5;
           const clumpNoise = Math.sin(x * 0.4) * Math.cos(z * 0.4) * 1.8;
-          const maxH = Math.max(1, domeHeight + clumpNoise);
+          const maxH = Math.max(1.5, domeHeight + clumpNoise);
 
-          const layers = Math.floor(rand3 * 3) + 2; // 2 to 4 layers
+          const layers = Math.floor(rand3 * 2) + 2; // 2 to 3 layers
 
           for (let i = 0; i < layers; i++) {
             let y = maxH;
             if (i > 0) {
-              y = Math.max(0.5, maxH - (i * 1.5 * rand1));
+              y = Math.max(1, maxH - (i * 1.5 * rand1));
             }
             data.push({
               x,
@@ -108,25 +122,21 @@ export function VoxelSystem({ qrData, viewMode }: VoxelSystemProps) {
             });
           }
         } else {
-          // Grass / Outer Edge
-          const layers = Math.floor(rand3 * 2) + 1; // 1 to 2 layers
-          const maxH = 0.5 + rand1 * 1.5;
-
-          for (let i = 0; i < layers; i++) {
-            data.push({
-              x,
-              y: maxH - (i * 0.5),
-              z,
-              color: colorGrass,
-              isMorphable: true,
-            });
-          }
+          // Grass / Outer Edge Shrubs
+          const maxH = 0.5 + rand1 * 1.0;
+          data.push({
+            x,
+            y: maxH,
+            z,
+            color: colorGrass,
+            isMorphable: true,
+          });
         }
       }
     }
 
     return data;
-  }, [matrix, size, halfSize, isFinderPattern]);
+  }, [matrix, size, halfSize, isFinderPattern, themeColors]);
 
   return (
     <Instances range={voxels.length} castShadow receiveShadow>
