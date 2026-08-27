@@ -51,7 +51,6 @@ export function TreeFoliageMorph({
         const dist = Math.sqrt(x * x + z * z) / Math.max(halfSize, 1);
 
         const seed = (darkIndex * 9301 + 49297) % 233280;
-        const rand1 = seed / 233280.0;
         const rand2 = ((seed * 9301 + 49297) % 233280) / 233280.0;
         const rand3 = ((seed * 12345 + 6789) % 233280) / 233280.0;
         darkIndex++;
@@ -65,24 +64,55 @@ export function TreeFoliageMorph({
             color: finderColor,
           });
         } else {
-          // 3D Tree Canopy Dome Height (center high, perimeter low)
-          const domeHeight = Math.max(0, 1 - Math.pow(dist, 1.35)) * 6.2 * elevation;
-          const branchJitter = (Math.sin(r * 3.7 + c * 5.3) * 0.35 + (rand2 - 0.5) * 0.5) * elevation;
-          const y = 0.22 + domeHeight + branchJitter;
+          // Organic Base Height (Envelope)
+          // 1. Base Dome
+          const domeHeight = Math.max(0, 1 - Math.pow(dist, 1.2)) * 6.5 * elevation;
+          
+          // 2. Low-frequency Clump Noise (creates branches/clusters)
+          const clumpNoise = Math.sin(x * 0.4) * Math.cos(z * 0.4) * 1.8 * elevation;
+          
+          // 3. High-frequency Jitter
+          const detailNoise = (Math.sin(x * 3.7 + z * 5.3) * 0.35 + (rand2 - 0.5) * 0.6) * elevation;
+          
+          const maxH = Math.max(0.22, 0.22 + domeHeight + clumpNoise + detailNoise);
 
-          // Color palette distribution
-          let col = primaryColor;
-          if (rand1 > 0.6) col = secondaryColor;
-          else if (rand1 > 0.35) col = accentColor;
+          // Determine number of layers based on distance and random (denser at center)
+          const maxLayers = dist < 0.5 ? 4 : (dist < 0.8 ? 3 : 2);
+          const layers = Math.floor(rand3 * maxLayers) + 1; // 1 to 4 layers
 
-          foliage.push({
-            x,
-            y,
-            z,
-            scale: 0.98 + rand3 * 0.12,
-            rotY: rand1 * Math.PI * 2,
-            color: col,
-          });
+          let layerSeed = darkIndex * 12345;
+
+          for (let i = 0; i < layers; i++) {
+            layerSeed = (layerSeed * 9301 + 49297) % 233280;
+            const lRand1 = layerSeed / 233280.0;
+            layerSeed = (layerSeed * 9301 + 49297) % 233280;
+            const lRand2 = layerSeed / 233280.0;
+            layerSeed = (layerSeed * 9301 + 49297) % 233280;
+            const lRand3 = layerSeed / 233280.0;
+
+            // Height distribution: 
+            // - Top layer (i=0) is exactly at maxH (forms the canopy envelope)
+            // - Lower layers are scattered vertically down to 50-70% of maxH
+            let y = maxH;
+            if (i > 0) {
+              const drop = lRand1 * (maxH * 0.6); // Drop up to 60%
+              y = Math.max(0.25, maxH - drop);
+            }
+
+            // Color palette distribution
+            let col = primaryColor;
+            if (lRand2 > 0.65) col = secondaryColor;
+            else if (lRand2 > 0.35) col = accentColor;
+
+            foliage.push({
+              x,
+              y,
+              z,
+              // Top layer strictly fills the cell, lower layers vary in size for organic look
+              scale: (i === 0 ? 1.04 : 0.5 + lRand3 * 0.5),
+              color: col,
+            });
+          }
         }
       }
     }
@@ -98,10 +128,12 @@ export function TreeFoliageMorph({
     if (foliageMeshRef.current && foliageData.length > 0) {
       foliageData.forEach((f, idx) => {
         dummy.position.set(f.x, f.y, f.z);
-        dummy.rotation.set(0, f.rotY, 0);
+        
+        // STRICTLY Axis-aligned (0 rotation) to perfectly match QR grid and create voxel/papercraft look
+        dummy.rotation.set(0, 0, 0);
 
-        // Gapless seamless square-filling scale in XZ
-        dummy.scale.set(1.02 * f.scale, 0.85, 1.02 * f.scale);
+        // Apply scale only to X and Z, keeping Y (thickness) constant
+        dummy.scale.set(f.scale, 1, f.scale);
 
         dummy.updateMatrix();
         foliageMeshRef.current?.setMatrixAt(idx, dummy.matrix);
@@ -148,7 +180,8 @@ export function TreeFoliageMorph({
           {isCrystal ? (
             <octahedronGeometry args={[0.55, 0]} />
           ) : (
-            <cylinderGeometry args={[0.55, 0.55, 1.0, 16]} />
+            // Thin horizontal slice to create the voxel/papercraft flat leaf look
+            <boxGeometry args={[1, 0.08, 1]} />
           )}
           <meshStandardMaterial
             roughness={isCrystal ? 0.2 : 0.65}
