@@ -13,8 +13,6 @@ export interface QRMatrixData {
 export interface AppSettings {
   text: string;
   theme: ThemeType;
-  elevation: number;       // 3D Tree canopy height multiplier
-  blockDensity: number;    // Foliage density
   autoRotate: boolean;
   particlesEnabled: boolean;
   cameraMode: CameraMode;

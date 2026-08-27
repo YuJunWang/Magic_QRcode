@@ -11,65 +11,60 @@ interface OrthoCameraProps {
   gridSize: number;
 }
 
+// Fixed spherical coordinates (degrees → radians)
+const PHI_3D = 0.95;    // ~54° polar angle (isometric)
+const PHI_2D = 0.0001;  // ~0° (directly above; tiny offset prevents gimbal lock)
+const THETA  = Math.PI / 4; // 45° azimuth
+const RADIUS = 160;
+
 export function OrthoCamera({ viewMode, gridSize }: OrthoCameraProps) {
   const cameraRef = useRef<any>(null);
   const { size } = useThree();
 
-  // Screen-responsive zoom calculation
-  const padding = 1.85;
-  const targetUnits = gridSize * padding;
-  const minDimension = Math.min(size.width, size.height);
-  const baseZoom = minDimension / targetUnits;
-  const treeMidY = Math.max(8, gridSize * 0.25);
+  const padding      = 1.85;
+  const baseZoom     = Math.min(size.width, size.height) / (gridSize * padding);
+  const treeMidY     = Math.max(8, gridSize * 0.25);
 
-  // Spherical Orbit State
-  const radius = 160;
-  const phi3D = 0.95; // ~54.4 degrees polar angle
-  const phi2D = 0.0001; // ~0 degrees (straight top-down singularity prevention)
-  const theta = Math.PI / 4; // 45 degrees azimuth
-
-  const orbitState = useRef({
-    phi: viewMode === '2d' ? phi2D : phi3D,
-    theta: theta,
-    radius: radius,
-    targetX: 0,
-    targetY: viewMode === '2d' ? 0 : treeMidY,
-    targetZ: 0,
-    zoom: viewMode === '2d' ? baseZoom : baseZoom * 0.72,
+  // animState tracks the CURRENT interpolated values driven by GSAP.
+  // It is intentionally NOT pre-seeded from viewMode so that the ref
+  // always reflects the camera's true live position at any given moment.
+  const animState = useRef({
+    phi:     PHI_3D,
+    targetY: treeMidY,
+    zoom:    baseZoom * 0.72,
   });
 
   useGSAP(() => {
     if (!cameraRef.current) return;
     const camera = cameraRef.current;
-    const state = orbitState.current;
+    const state  = animState.current;
 
-    const is2D = viewMode === '2d';
-    const targetPhi = is2D ? phi2D : phi3D;
-    const targetY = is2D ? 0 : treeMidY;
-    const targetZoom = is2D ? baseZoom : baseZoom * 0.72;
+    const is2D      = viewMode === '2d';
+    const toPhi     = is2D ? PHI_2D  : PHI_3D;
+    const toTargetY = is2D ? 0       : treeMidY;
+    const toZoom    = is2D ? baseZoom : baseZoom * 0.72;
 
-    // Cinematic GSAP Timeline for continuous spherical arc camera motion
+    // Kill any in-flight tween on our state object, then start fresh FROM
+    // the current live values (state.phi / state.targetY / state.zoom) to
+    // the new targets. This prevents ghost-start jumps when gridSize changes.
     gsap.killTweensOf(state);
 
     gsap.to(state, {
-      phi: targetPhi,
-      targetY: targetY,
-      zoom: targetZoom,
+      phi:     toPhi,
+      targetY: toTargetY,
+      zoom:    toZoom,
       duration: 1.5,
       ease: 'power4.inOut',
       onUpdate: () => {
-        const sinPhi = Math.sin(state.phi);
-        const cosPhi = Math.cos(state.phi);
-        const sinTheta = Math.sin(state.theta);
-        const cosTheta = Math.cos(state.theta);
+        const sp = Math.sin(state.phi);
+        const cp = Math.cos(state.phi);
 
-        // Continuous spherical dome coordinates
         camera.position.set(
-          state.radius * sinPhi * cosTheta,
-          state.radius * cosPhi,
-          state.radius * sinPhi * sinTheta
+          RADIUS * sp * Math.cos(THETA),
+          RADIUS * cp,
+          RADIUS * sp * Math.sin(THETA)
         );
-        camera.lookAt(state.targetX, state.targetY, state.targetZ);
+        camera.lookAt(0, state.targetY, 0);
         camera.zoom = state.zoom;
         camera.updateProjectionMatrix();
       },
@@ -81,14 +76,14 @@ export function OrthoCamera({ viewMode, gridSize }: OrthoCameraProps) {
       ref={cameraRef}
       makeDefault
       position={[
-        radius * Math.sin(viewMode === '2d' ? phi2D : phi3D) * Math.cos(theta),
-        radius * Math.cos(viewMode === '2d' ? phi2D : phi3D),
-        radius * Math.sin(viewMode === '2d' ? phi2D : phi3D) * Math.sin(theta),
+        RADIUS * Math.sin(PHI_3D) * Math.cos(THETA),
+        RADIUS * Math.cos(PHI_3D),
+        RADIUS * Math.sin(PHI_3D) * Math.sin(THETA),
       ]}
-      zoom={viewMode === '2d' ? baseZoom : baseZoom * 0.72}
+      zoom={baseZoom * 0.72}
       near={0.1}
       far={1000}
-      onUpdate={(c) => c.lookAt(0, viewMode === '2d' ? 0 : treeMidY, 0)}
+      onUpdate={(c) => c.lookAt(0, treeMidY, 0)}
     />
   );
 }

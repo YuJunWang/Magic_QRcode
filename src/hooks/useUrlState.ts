@@ -5,8 +5,6 @@ import type { AppSettings, ThemeType } from '../types';
 const DEFAULT_SETTINGS: AppSettings = {
   text: 'https://github.com/YuJunWang/Magic_QRcode',
   theme: 'sakura',
-  elevation: 1.0,
-  blockDensity: 0.95,
   autoRotate: true,
   particlesEnabled: true,
   cameraMode: 'orbit',
@@ -21,6 +19,7 @@ export function useUrlState() {
         const decompressed = LZString.decompressFromEncodedURIComponent(hash);
         if (decompressed) {
           const parsed = JSON.parse(decompressed);
+          // cameraMode is always reset to 'orbit' on load (don't persist scan mode)
           return { ...DEFAULT_SETTINGS, ...parsed, cameraMode: 'orbit' };
         }
       } catch (err) {
@@ -28,7 +27,7 @@ export function useUrlState() {
       }
     }
 
-    // 2. Fallback to query params
+    // 2. Fallback to legacy query params (backward-compat)
     const params = new URLSearchParams(window.location.search);
     const textParam = params.get('text') || params.get('url');
     const themeParam = params.get('theme') as ThemeType;
@@ -44,15 +43,17 @@ export function useUrlState() {
     return DEFAULT_SETTINGS;
   });
 
-  // Sync state to URL hash (debounced)
+  // Sync state to URL hash (debounced 300 ms)
+  // Persisted: text, theme, autoRotate, particlesEnabled
+  // NOT persisted: cameraMode (always starts in orbit)
   useEffect(() => {
     const handler = setTimeout(() => {
       try {
         const stateToSave = {
-          text: settings.text,
-          theme: settings.theme,
-          elevation: settings.elevation,
-          blockDensity: settings.blockDensity,
+          text:             settings.text,
+          theme:            settings.theme,
+          autoRotate:       settings.autoRotate,
+          particlesEnabled: settings.particlesEnabled,
         };
         const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(stateToSave));
         window.history.replaceState(null, '', `#${compressed}`);
@@ -62,7 +63,7 @@ export function useUrlState() {
     }, 300);
 
     return () => clearTimeout(handler);
-  }, [settings.text, settings.theme, settings.elevation, settings.blockDensity]);
+  }, [settings.text, settings.theme, settings.autoRotate, settings.particlesEnabled]);
 
   const updateSetting = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));

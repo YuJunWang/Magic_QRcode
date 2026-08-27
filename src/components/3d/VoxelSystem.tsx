@@ -379,10 +379,17 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         </Instances>
       )}
 
-      {/* 3. Fluffy Multi-Lobe Billowing Foliage Canopy */}
+      {/* 3. Fluffy Multi-Lobe Billowing Foliage Canopy
+          — emissive glow is per-theme and disabled in 2D scan mode
+            so QR contrast is never affected */}
       <Instances limit={10000} range={foliageVoxels.length} castShadow receiveShadow>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial roughness={0.65} metalness={0.1} />
+        <meshStandardMaterial
+          roughness={0.65}
+          metalness={0.1}
+          emissive={themeColors.foliageEmissive ?? '#000000'}
+          emissiveIntensity={viewMode === '3d' ? (themeColors.foliageEmissiveIntensity ?? 0) : 0}
+        />
         {foliageVoxels.map((v, i) => (
           <TreeVoxel key={`f-${i}`} {...v} viewMode={viewMode} />
         ))}

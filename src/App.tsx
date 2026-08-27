@@ -6,6 +6,7 @@ import { Header } from './components/ui/Header';
 import { ViewSwitch } from './components/ui/ViewSwitch';
 import { ShareModal } from './components/ui/ShareModal';
 import type { ThemeType } from './types';
+// ControlPanel intentionally removed — functionality moved to Header (command bar) and ViewSwitch (dock)
 
 export function App() {
   const { settings, updateSetting, getShareableUrl } = useUrlState();
