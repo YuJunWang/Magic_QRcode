@@ -118,36 +118,36 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
           {/* Dynamic Lighting Rig */}
           <ambientLight
             color={isScanMode ? '#ffffff' : colors.ambientLightColor}
-            intensity={isScanMode ? 2.5 : 0.85}
+            intensity={isScanMode ? 2.5 : 0.65}
           />
 
           {/* Main Key Sun Light */}
           <directionalLight
-            position={isScanMode ? [0, 80, 0] : [24, 38, 20]}
+            position={isScanMode ? [0, 80, 0] : [26, 42, 22]}
             color={isScanMode ? '#ffffff' : colors.directionalLightColor}
-            intensity={isScanMode ? 1.5 : 1.8}
+            intensity={isScanMode ? 1.5 : 2.2}
             castShadow={!isScanMode}
             shadow-mapSize={[2048, 2048]}
-            shadow-camera-left={-28}
-            shadow-camera-right={28}
-            shadow-camera-top={28}
-            shadow-camera-bottom={-28}
+            shadow-camera-left={-32}
+            shadow-camera-right={32}
+            shadow-camera-top={32}
+            shadow-camera-bottom={-32}
             shadow-bias={-0.0001}
           />
 
-          {/* Fill Light for 3D depth */}
+          {/* Rim & Fill Light for Sculptural 3D Depth */}
           {!isScanMode && (
             <>
               <directionalLight
-                position={[-18, 16, -18]}
+                position={[-20, 18, -20]}
                 color={colors.accentColor}
-                intensity={0.6}
+                intensity={0.45}
               />
               <pointLight
                 position={[0, 8, 0]}
                 color={colors.foliagePrimary}
-                intensity={0.5}
-                distance={30}
+                intensity={0.45}
+                distance={35}
               />
             </>
           )}
