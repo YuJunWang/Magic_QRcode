@@ -56,37 +56,37 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
 
           {/* Dynamic Lighting Rig */}
           <ambientLight
-            color={colors.ambientLightColor}
-            intensity={isScanMode ? 2.0 : 0.9}
+            color={isScanMode ? '#ffffff' : colors.ambientLightColor}
+            intensity={isScanMode ? 2.5 : 0.85}
           />
 
           {/* Main Key Sun Light */}
           <directionalLight
-            position={isScanMode ? [0, 80, 0.001] : [18, 28, 16]}
-            color={colors.directionalLightColor}
-            intensity={isScanMode ? 2.8 : 2.0}
+            position={isScanMode ? [0, 80, 0] : [24, 38, 20]}
+            color={isScanMode ? '#ffffff' : colors.directionalLightColor}
+            intensity={isScanMode ? 1.5 : 1.8}
             castShadow={!isScanMode}
             shadow-mapSize={[2048, 2048]}
-            shadow-camera-left={-28}
-            shadow-camera-right={28}
-            shadow-camera-top={28}
-            shadow-camera-bottom={-28}
-            shadow-bias={-0.0002}
+            shadow-camera-left={-25}
+            shadow-camera-right={25}
+            shadow-camera-top={25}
+            shadow-camera-bottom={-25}
+            shadow-bias={-0.0001}
           />
 
-          {/* Fill Light */}
+          {/* Fill Light for 3D depth */}
           {!isScanMode && (
             <>
               <directionalLight
-                position={[-16, 15, -16]}
+                position={[-18, 16, -18]}
                 color={colors.accentColor}
-                intensity={0.7}
+                intensity={0.6}
               />
               <pointLight
-                position={[0, 10, 0]}
+                position={[0, 8, 0]}
                 color={colors.foliagePrimary}
-                intensity={0.6}
-                distance={35}
+                intensity={0.5}
+                distance={30}
               />
             </>
           )}
@@ -96,6 +96,7 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
               qrData={qrData} 
               viewMode={settings.cameraMode === 'scan' ? '2d' : '3d'} 
               themeColors={colors}
+              elevation={settings.elevation}
             />
           </group>
         </Canvas>

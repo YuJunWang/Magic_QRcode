@@ -12,13 +12,9 @@ export function OrthoCamera({ viewMode, gridSize }: OrthoCameraProps) {
   const cameraRef = useRef<any>(null);
   const { size } = useThree();
 
-  // Calculate zoom so the QR code fits the screen
-  const padding = 1.2;
-  // Determine how many units need to fit horizontally and vertically
+  // Calculate zoom so the QR code fits the screen with ample quiet zone and UI clearance
+  const padding = 1.85; // Generous quiet zone to guarantee scanner detection and clear UI panels
   const targetUnits = gridSize * padding;
-  // Ortho zoom is (pixels / unit). 
-  // If height is the limiting factor: zoom = size.height / targetUnits
-  // If width is limiting: zoom = size.width / targetUnits
   const minDimension = Math.min(size.width, size.height);
   const baseZoom = minDimension / targetUnits;
 
@@ -26,34 +22,34 @@ export function OrthoCamera({ viewMode, gridSize }: OrthoCameraProps) {
     if (!cameraRef.current) return;
 
     if (viewMode === '2d') {
-      // Top-down Orthographic
+      // Top-down Orthographic Scan Mode
       gsap.to(cameraRef.current.position, {
         x: 0,
-        y: 100,
+        y: 120,
         z: 0,
-        duration: 1.5,
+        duration: 1.2,
         ease: 'power3.inOut',
         onUpdate: () => cameraRef.current.lookAt(0, 0, 0),
       });
       gsap.to(cameraRef.current, {
         zoom: baseZoom,
-        duration: 1.5,
+        duration: 1.2,
         ease: 'power3.inOut',
         onUpdate: () => cameraRef.current.updateProjectionMatrix(),
       });
     } else {
-      // Isometric 3D
+      // Isometric 3D Tree View (Centered on the volumetric tree)
       gsap.to(cameraRef.current.position, {
-        x: 100,
-        y: 100,
-        z: 100,
-        duration: 1.5,
+        x: 70,
+        y: 65,
+        z: 70,
+        duration: 1.2,
         ease: 'power3.inOut',
-        onUpdate: () => cameraRef.current.lookAt(0, 0, 0),
+        onUpdate: () => cameraRef.current.lookAt(0, 4.0, 0),
       });
       gsap.to(cameraRef.current, {
-        zoom: baseZoom * 1.2, // Slightly zoomed in for 3D
-        duration: 1.5,
+        zoom: baseZoom * 0.95,
+        duration: 1.2,
         ease: 'power3.inOut',
         onUpdate: () => cameraRef.current.updateProjectionMatrix(),
       });
@@ -64,11 +60,11 @@ export function OrthoCamera({ viewMode, gridSize }: OrthoCameraProps) {
     <OrthographicCamera
       ref={cameraRef}
       makeDefault
-      position={viewMode === '2d' ? [0, 100, 0] : [100, 100, 100]}
-      zoom={baseZoom}
+      position={viewMode === '2d' ? [0, 100, 0] : [60, 60, 60]}
+      zoom={viewMode === '2d' ? baseZoom : baseZoom * 0.82}
       near={0.1}
       far={1000}
-      onUpdate={(c) => c.lookAt(0, 0, 0)}
+      onUpdate={(c) => c.lookAt(0, viewMode === '2d' ? 0 : 2.5, 0)}
     />
   );
 }

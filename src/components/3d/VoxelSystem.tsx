@@ -7,144 +7,188 @@ interface VoxelSystemProps {
   qrData: QRMatrixData;
   viewMode: '2d' | '3d';
   themeColors: any;
+  elevation?: number;
 }
 
-export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps) {
+export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: VoxelSystemProps) {
   const { size, matrix, isFinderPattern } = qrData;
   const halfSize = (size - 1) / 2;
 
-  const voxels = useMemo(() => {
-    const data: VoxelData[] = [];
+  const { groundVoxels, trunkVoxels, foliageVoxels } = useMemo(() => {
+    const ground: VoxelData[] = [];
+    const trunk: VoxelData[] = [];
+    const foliage: VoxelData[] = [];
 
-    // Colors
-    const colorWhite = '#f3f4f6'; // Light ground
-    const colorBlack = '#111827'; // Finder pattern
-    const colorTrunk = themeColors.trunkColor || '#78350f'; 
-    const colorLeaf1 = themeColors.foliagePrimary || '#22c55e';
-    const colorLeaf2 = themeColors.foliageSecondary || '#16a34a';
-    const colorGrass = themeColors.foliagePrimary || '#4ade80';
+    // Theme Color Palettes
+    const trunkColor = themeColors.trunkColor || '#5c3a21';
+    const primaryLeaf = themeColors.foliagePrimary || '#38761d';
+    const secondaryLeaf = themeColors.foliageSecondary || '#274e13';
+    const accentLeaf = themeColors.accentColor || '#6aa84f';
+    const grassColor = themeColors.accentColor || '#45811e';
 
-    let darkIndex = 0;
+    // 1. Ground Plaza: Render complete plaza with 2-tile Quiet Zone around the entire QR matrix
+    const quietZone = 2;
+    const minGrid = -quietZone;
+    const maxGrid = size + quietZone;
 
-    for (let r = 0; r < size; r++) {
-      for (let c = 0; c < size; c++) {
+    for (let r = minGrid; r < maxGrid; r++) {
+      for (let c = minGrid; c < maxGrid; c++) {
         const x = c - halfSize;
         const z = r - halfSize;
-        const dist = Math.sqrt(x * x + z * z);
 
-        if (!matrix[r][c]) {
-          // White Modules - Solid Ground
-          data.push({
-            x,
-            y: -0.05,
-            z,
-            color: colorWhite,
-            isMorphable: false,
-            baseScaleY: 0.1,
-          });
-          continue;
-        }
+        // Alternating subtle checkerboard paving stones
+        const isAlternate = (Math.abs(r) + Math.abs(c)) % 2 === 0;
+        const stoneColor = isAlternate ? '#f5f4ed' : '#eae7df';
 
-        // --- Black Modules ---
-        // Always spawn a solid dark base tile to guarantee QR contrast in 2D
-        data.push({
+        // Base ground paving tile
+        ground.push({
           x,
-          y: -0.01,
+          y: -0.05,
           z,
-          color: colorBlack,
-          isMorphable: false,
-          baseScaleY: 0.12,
+          color: stoneColor,
+          height: 0.1,
         });
 
+        // If outside the QR matrix, it's just the quiet zone plaza
+        if (r < 0 || r >= size || c < 0 || c >= size) {
+          continue;
+        }
+
+        const isDark = matrix[r][c];
+        if (!isDark) {
+          continue;
+        }
+
+        // --- Dark Module Handling ---
+
+        // A. Corner Finder Patterns -> Square Garden Hedge Boxes
         if (isFinderPattern(r, c)) {
-          // Finder Pattern Corners (just the base is enough, or maybe make it a slightly raised box)
-          data.push({
+          foliage.push({
             x,
-            y: 0.2,
+            y: 0.35,
             z,
-            color: colorBlack,
-            isMorphable: false,
-            baseScaleY: 0.4,
+            color: secondaryLeaf,
+            height: 0.7,
           });
           continue;
         }
 
-        // Procedural Generation for Tree/Grass on top of the black base
-        darkIndex++;
-        const seed = (darkIndex * 9301 + 49297) % 233280;
-        const rand1 = seed / 233280.0;
-        const rand2 = ((seed * 9301 + 49297) % 233280) / 233280.0;
-        const rand3 = ((seed * 12345 + 6789) % 233280) / 233280.0;
+        // B. Data Modules -> Tree Trunk, Canopy, or Edge Grass
+        const dist = Math.sqrt(x * x + z * z);
+        const seed = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453);
+        const rand1 = seed % 1;
+        const rand2 = (seed * 10) % 1;
+        const rand3 = (seed * 100) % 1;
 
-        // Ensure trunk is centered, canopy is grouped around it
-        const isTrunk = Math.abs(x) <= 1 && Math.abs(z) <= 1;
+        // Tree canopy envelope scaled to grid size - high volume
+        const maxCanopyRadius = halfSize * 0.68;
+        const baseTreeHeight = Math.max(16, size * 0.48) * elevation;
 
-        if (isTrunk) {
-          // Trunk pillar
-          data.push({
+        if (dist <= 2.2) {
+          // Central Trunk Column
+          const trunkH = baseTreeHeight * 0.6;
+          trunk.push({
             x,
-            y: 1.5,
+            y: trunkH / 2,
             z,
-            color: colorTrunk,
-            isMorphable: false,
-            baseScaleY: 3,
+            color: trunkColor,
+            height: trunkH,
           });
-          // Canopy on top of trunk
-          data.push({
+
+          // Dense top foliage over trunk
+          foliage.push({
             x,
-            y: 3.5 + rand1 * 1,
+            y: baseTreeHeight * 0.9 + rand1 * 2.0,
             z,
-            color: colorLeaf2,
-            isMorphable: true,
+            color: secondaryLeaf,
+            height: 0.12,
           });
-        } else if (dist < halfSize * 0.75) { 
-          // Main Canopy (Denser in the middle, fading out)
-          // Use absolute distance rather than normalized to avoid making a huge rectangle
-          const maxRadius = halfSize * 0.75;
-          const distFactor = Math.max(0, 1 - Math.pow(dist / maxRadius, 1.5));
-          const domeHeight = distFactor * 6.5;
-          const clumpNoise = Math.sin(x * 0.4) * Math.cos(z * 0.4) * 1.8;
-          const maxH = Math.max(1.5, domeHeight + clumpNoise);
+        } else if (dist <= maxCanopyRadius) {
+          // Main Foliage Canopy (Tapered dome / umbrella crown)
+          const normalizedDist = dist / maxCanopyRadius;
+          const domeHeight = (baseTreeHeight * 0.35 + Math.pow(1 - normalizedDist, 1.1) * (baseTreeHeight * 0.65));
+          const noise = Math.sin(x * 0.5) * Math.cos(z * 0.5) * 2.2;
+          const peakY = Math.max(baseTreeHeight * 0.35, domeHeight + noise);
 
-          const layers = Math.floor(rand3 * 2) + 2; // 2 to 3 layers
+          // Number of tiered horizontal leaf layers (3 to 5 layers for thick canopy)
+          const numLayers = Math.floor(rand2 * 3) + 3;
+          const bottomY = baseTreeHeight * 0.28;
 
-          for (let i = 0; i < layers; i++) {
-            let y = maxH;
-            if (i > 0) {
-              y = Math.max(1, maxH - (i * 1.5 * rand1));
-            }
-            data.push({
+          for (let i = 0; i < numLayers; i++) {
+            // Distribute layers vertically
+            const layerY = i === 0 ? peakY : Math.max(bottomY, peakY - i * (2.0 + rand3 * 1.0));
+            
+            // Color variation across layers
+            let leafColor = primaryLeaf;
+            if (i === 0 && rand1 > 0.35) leafColor = accentLeaf;
+            else if (rand1 > 0.65) leafColor = secondaryLeaf;
+
+            foliage.push({
               x,
-              y,
+              y: layerY,
               z,
-              color: rand2 > 0.5 ? colorLeaf1 : colorLeaf2,
-              isMorphable: true,
+              color: leafColor,
+              height: 0.12,
+            });
+          }
+
+          // Spawn sturdy wooden branches beneath thick foliage clusters
+          if (rand1 > 0.6 && dist < maxCanopyRadius * 0.6) {
+            trunk.push({
+              x,
+              y: bottomY * 0.75,
+              z,
+              color: trunkColor,
+              height: bottomY * 0.9,
             });
           }
         } else {
-          // Grass / Outer Edge Shrubs
-          const maxH = 0.5 + rand1 * 1.0;
-          data.push({
+          // Edge Grass / Flower Bed Border
+          const grassHeight = 0.2 + rand1 * 0.35;
+          foliage.push({
             x,
-            y: maxH,
+            y: grassHeight / 2,
             z,
-            color: colorGrass,
-            isMorphable: true,
+            color: grassColor,
+            height: grassHeight,
           });
         }
       }
     }
 
-    return data;
-  }, [matrix, size, halfSize, isFinderPattern, themeColors]);
+    return { groundVoxels: ground, trunkVoxels: trunk, foliageVoxels: foliage };
+  }, [matrix, size, halfSize, isFinderPattern, themeColors, elevation]);
 
   return (
-    <Instances range={voxels.length} castShadow receiveShadow>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial roughness={0.8} metalness={0.1} />
-      {voxels.map((v, i) => (
-        <TreeVoxel key={i} {...v} viewMode={viewMode} />
-      ))}
-    </Instances>
+    <group>
+      {/* 1. Ground Plaza Paving Stones */}
+      <Instances limit={Math.max(1000, groundVoxels.length)} range={groundVoxels.length} receiveShadow>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial roughness={0.9} metalness={0.05} />
+        {groundVoxels.map((v, i) => (
+          <TreeVoxel key={`g-${i}`} {...v} viewMode={viewMode} />
+        ))}
+      </Instances>
+
+      {/* 2. Tree Trunk & Branches */}
+      {trunkVoxels.length > 0 && (
+        <Instances limit={Math.max(1000, trunkVoxels.length)} range={trunkVoxels.length} castShadow receiveShadow>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial roughness={0.85} metalness={0.1} />
+          {trunkVoxels.map((v, i) => (
+            <TreeVoxel key={`t-${i}`} {...v} viewMode={viewMode} />
+          ))}
+        </Instances>
+      )}
+
+      {/* 3. Lush Multi-Tiered Foliage & Hedges */}
+      <Instances limit={Math.max(1000, foliageVoxels.length)} range={foliageVoxels.length} castShadow receiveShadow>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial roughness={0.65} metalness={0.1} />
+        {foliageVoxels.map((v, i) => (
+          <TreeVoxel key={`f-${i}`} {...v} viewMode={viewMode} />
+        ))}
+      </Instances>
+    </group>
   );
 }
