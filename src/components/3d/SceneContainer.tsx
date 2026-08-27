@@ -2,8 +2,8 @@ import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import type { QRMatrixData, AppSettings } from '../../types';
 import { getThemeConfig } from '../../utils/themeConfig';
-import { CameraController } from './CameraController';
-import { MagicTreeScene } from './MagicTree/MagicTreeScene';
+import { OrthoCamera } from './OrthoCamera';
+import { VoxelSystem } from './VoxelSystem';
 
 export interface SceneHandle {
   captureScreenshot: () => string | null;
@@ -44,20 +44,14 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
             alpha: false,
             powerPreference: 'high-performance',
           }}
-          camera={{
-            position: [0, 22, 26],
-            fov: 45,
-            near: 0.1,
-            far: 800,
-          }}
         >
           <color attach="background" args={[colors.background]} />
-
-          {/* Camera Controller with smooth perspective / scan lerp */}
-          <CameraController
-            mode={settings.cameraMode}
-            autoRotate={settings.autoRotate}
-            qrSize={qrData.size}
+          {/* 
+            OrthoCamera manages the GSAP animation between 2D (top-down) and 3D (isometric)
+          */}
+          <OrthoCamera 
+            viewMode={settings.cameraMode === 'scan' ? '2d' : '3d'} 
+            gridSize={qrData.size} 
           />
 
           {/* Dynamic Lighting Rig */}
@@ -97,17 +91,12 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
             </>
           )}
 
-          {/* 3D Volumetric Magic Tree Scene */}
-          <MagicTreeScene
-            qrData={qrData}
-            colors={colors}
-            elevation={settings.elevation}
-            blockDensity={settings.blockDensity}
-            cameraMode={settings.cameraMode}
-            particlesEnabled={settings.particlesEnabled}
-            theme={settings.theme}
-            onTreeClick={onToggleMode}
-          />
+          <group onClick={onToggleMode}>
+            <VoxelSystem 
+              qrData={qrData} 
+              viewMode={settings.cameraMode === 'scan' ? '2d' : '3d'} 
+            />
+          </group>
         </Canvas>
       </div>
     );
