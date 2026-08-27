@@ -1,54 +1,33 @@
-import { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
-import type { QRMatrixData, ThemeColors, CameraMode } from '../../../types';
+import type { QRMatrixData, ThemeColors } from '../../../types';
 
 interface TreeFoliageMorphProps {
   qrData: QRMatrixData;
   colors: ThemeColors;
   elevation: number;
   blockDensity: number;
-  cameraMode: CameraMode;
   themeType: string;
 }
 
+/**
+ * v3.0 Pure Perspective Viewpoint Magic
+ * - Side View: Lush organic 3D bonsai tree canopy
+ * - Top View: 100% scannable QR Code (横看成岭侧成峰)
+ */
 export function TreeFoliageMorph({
   qrData,
   colors,
   elevation,
-  blockDensity,
-  cameraMode,
   themeType,
 }: TreeFoliageMorphProps) {
-  const { size, matrix, isFinderPattern, isFinderCenter } = qrData;
+  const { size, matrix, isFinderPattern } = qrData;
   const halfSize = (size - 1) / 2;
 
   const foliageMeshRef = useRef<THREE.InstancedMesh>(null);
   const finderMeshRef = useRef<THREE.InstancedMesh>(null);
-  const morphProgressRef = useRef(cameraMode === 'scan' ? 1 : 0);
 
-  // Define high-contrast scan colors for each theme to guarantee 100% camera scan success
-  const deepScanColor = useMemo(() => {
-    switch (themeType) {
-      case 'sakura':
-        return new THREE.Color('#2d0a1e'); // Deep Plum
-      case 'summer':
-        return new THREE.Color('#082613'); // Deep Pine
-      case 'autumn':
-        return new THREE.Color('#2e0b04'); // Deep Mahogany
-      case 'winter':
-        return new THREE.Color('#071629'); // Deep Navy
-      case 'crystal':
-        return new THREE.Color('#16062b'); // Deep Amethyst
-      case 'zen':
-      default:
-        return new THREE.Color('#102213'); // Deep Moss
-    }
-  }, [themeType]);
-
-  const pureBlack = useMemo(() => new THREE.Color('#000000'), []);
-
-  // Calculate 3D Tree Crown positions (compact lush crown) vs 2D Flat QR positions
+  // Pre-calculate fixed 3D canopy coordinates for every dark module
   const { foliageData, finderData } = useMemo(() => {
     const foliage = [];
     const finder = [];
@@ -56,8 +35,7 @@ export function TreeFoliageMorph({
     const primaryColor = new THREE.Color(colors.foliagePrimary);
     const secondaryColor = new THREE.Color(colors.foliageSecondary);
     const accentColor = new THREE.Color(colors.foliageAccent);
-    const finderColor = new THREE.Color(colors.finderPatternColor);
-    const finderCenterColor = new THREE.Color(colors.finderAccentColor);
+    const finderColor = new THREE.Color('#0a0408');
 
     let darkIndex = 0;
 
@@ -65,8 +43,12 @@ export function TreeFoliageMorph({
       for (let c = 0; c < size; c++) {
         if (!matrix[r][c]) continue;
 
-        const xFlat = c - halfSize;
-        const zFlat = r - halfSize;
+        // Exact QR grid coordinate (NEVER moves)
+        const x = c - halfSize;
+        const z = r - halfSize;
+
+        // Normalized radial distance from center
+        const dist = Math.sqrt(x * x + z * z) / Math.max(halfSize, 1);
 
         const seed = (darkIndex * 9301 + 49297) % 233280;
         const rand1 = seed / 233280.0;
@@ -75,96 +57,55 @@ export function TreeFoliageMorph({
         darkIndex++;
 
         if (isFinderPattern(r, c)) {
-          const isCenter = isFinderCenter(r, c);
-          const x3D = xFlat * 0.95;
-          const z3D = zFlat * 0.95;
-          const y3D = (isCenter ? 1.2 : 0.6) * elevation;
-
+          // 7x7 corner modules - solid seamless flat tiles for 100% QR recognition
           finder.push({
-            xFlat,
-            zFlat,
-            x3D,
-            z3D,
-            y3D,
-            yFlat: 0.1,
-            color3D: isCenter ? finderCenterColor : finderColor,
+            x,
+            y: 0.18,
+            z,
+            color: finderColor,
           });
         } else {
-          // 3D Tree Mode: Golden ratio spherical spiral canopy
-          const phi = Math.acos(1 - 2 * rand1);
-          const theta = rand2 * Math.PI * 2;
-          const radiusSpread = Math.cbrt(0.2 + rand3 * 0.8) * 4.8 * elevation;
+          // 3D Tree Canopy Dome Height (center high, perimeter low)
+          const domeHeight = Math.max(0, 1 - Math.pow(dist, 1.35)) * 6.2 * elevation;
+          const branchJitter = (Math.sin(r * 3.7 + c * 5.3) * 0.35 + (rand2 - 0.5) * 0.5) * elevation;
+          const y = 0.22 + domeHeight + branchJitter;
 
-          // Tree Crown center at [0, 5.2, 0]
-          const x3D = radiusSpread * Math.sin(phi) * Math.cos(theta) * 1.35;
-          const y3D = 5.2 * elevation + radiusSpread * Math.cos(phi) * 0.9;
-          const z3D = radiusSpread * Math.sin(phi) * Math.sin(theta) * 1.35;
-
+          // Color palette distribution
           let col = primaryColor;
           if (rand1 > 0.6) col = secondaryColor;
           else if (rand1 > 0.35) col = accentColor;
 
           foliage.push({
-            xFlat,
-            zFlat,
-            x3D,
-            y3D,
-            z3D,
-            yFlat: 0.08,
-            randScale3D: 0.75 + rand2 * 0.45,
+            x,
+            y,
+            z,
+            scale: 0.98 + rand3 * 0.12,
             rotY: rand1 * Math.PI * 2,
-            rotX: (rand2 - 0.5) * 0.5,
-            rotZ: (rand3 - 0.5) * 0.5,
-            color3D: col,
+            color: col,
           });
         }
       }
     }
 
     return { foliageData: foliage, finderData: finder };
-  }, [matrix, size, halfSize, isFinderPattern, isFinderCenter, colors, elevation]);
+  }, [matrix, size, halfSize, isFinderPattern, colors, elevation]);
 
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-  const tempColor = useMemo(() => new THREE.Color(), []);
+  // Apply instance matrices once
+  useEffect(() => {
+    const dummy = new THREE.Object3D();
 
-  // Update instance transformations and contrast colors smoothly every frame
-  useFrame(() => {
-    const target = cameraMode === 'scan' ? 1 : 0;
-    morphProgressRef.current = THREE.MathUtils.lerp(morphProgressRef.current, target, 0.08);
-    const p = morphProgressRef.current;
-
-    // 1. Foliage Leaves / Flower Buds -> Solid Gapless QR Tiles
-    if (foliageMeshRef.current) {
+    // 1. Foliage Leaves / Blossom Canopy
+    if (foliageMeshRef.current && foliageData.length > 0) {
       foliageData.forEach((f, idx) => {
-        const curX = THREE.MathUtils.lerp(f.x3D, f.xFlat, p);
-        const curY = THREE.MathUtils.lerp(f.y3D, f.yFlat, p);
-        const curZ = THREE.MathUtils.lerp(f.z3D, f.zFlat, p);
-        dummy.position.set(curX, curY, curZ);
+        dummy.position.set(f.x, f.y, f.z);
+        dummy.rotation.set(0, f.rotY, 0);
 
-        dummy.rotation.set(
-          THREE.MathUtils.lerp(f.rotX, 0, p),
-          THREE.MathUtils.lerp(f.rotY, 0, p),
-          THREE.MathUtils.lerp(f.rotZ, 0, p)
-        );
-
-        // In 3D: Puffy cloud-like scale
-        // In Flat 2D: Perfect gapless square tile (scale 1.0 for seamless QR code)
-        const scale3D = f.randScale3D * 1.15;
-        const scaleFlat_XZ = 1.0 * blockDensity;
-        const scaleFlat_Y = 0.14;
-
-        dummy.scale.set(
-          THREE.MathUtils.lerp(scale3D, scaleFlat_XZ, p),
-          THREE.MathUtils.lerp(scale3D * 0.88, scaleFlat_Y, p),
-          THREE.MathUtils.lerp(scale3D, scaleFlat_XZ, p)
-        );
+        // Gapless seamless square-filling scale in XZ
+        dummy.scale.set(1.02 * f.scale, 0.85, 1.02 * f.scale);
 
         dummy.updateMatrix();
         foliageMeshRef.current?.setMatrixAt(idx, dummy.matrix);
-
-        // Interpolate color from 3D colorful petal to high-contrast deep dark tone in scan mode
-        tempColor.lerpColors(f.color3D, deepScanColor, Math.min(1, p * 1.2));
-        foliageMeshRef.current?.setColorAt(idx, tempColor);
+        foliageMeshRef.current?.setColorAt(idx, f.color);
       });
 
       foliageMeshRef.current.instanceMatrix.needsUpdate = true;
@@ -173,24 +114,16 @@ export function TreeFoliageMorph({
       }
     }
 
-    // 2. Finder Pattern Corner Pillars -> Pitch Dark Corner Blocks
-    if (finderMeshRef.current) {
+    // 2. Finder Corner Solid Blocks (Scale 1.04 ensures zero gaps between adjacent cells)
+    if (finderMeshRef.current && finderData.length > 0) {
       finderData.forEach((f, idx) => {
-        const curX = THREE.MathUtils.lerp(f.x3D, f.xFlat, p);
-        const curY = THREE.MathUtils.lerp(f.y3D / 2, f.yFlat, p);
-        const curZ = THREE.MathUtils.lerp(f.z3D, f.zFlat, p);
-        dummy.position.set(curX, curY, curZ);
+        dummy.position.set(f.x, f.y, f.z);
         dummy.rotation.set(0, 0, 0);
-
-        const curHeight = THREE.MathUtils.lerp(f.y3D, 0.22, p);
-        dummy.scale.set(1.0 * blockDensity, curHeight, 1.0 * blockDensity);
+        dummy.scale.set(1.04, 0.35, 1.04);
 
         dummy.updateMatrix();
         finderMeshRef.current?.setMatrixAt(idx, dummy.matrix);
-
-        // Interpolate finder patterns to pitch black for 100% scanner detection
-        tempColor.lerpColors(f.color3D, pureBlack, Math.min(1, p * 1.2));
-        finderMeshRef.current?.setColorAt(idx, tempColor);
+        finderMeshRef.current?.setColorAt(idx, f.color);
       });
 
       finderMeshRef.current.instanceMatrix.needsUpdate = true;
@@ -198,11 +131,13 @@ export function TreeFoliageMorph({
         finderMeshRef.current.instanceColor.needsUpdate = true;
       }
     }
-  });
+  }, [foliageData, finderData]);
+
+  const isCrystal = themeType === 'crystal';
 
   return (
     <group>
-      {/* 1. Instanced Foliage / Flower Buds with boxGeometry for gapless flat QR rendering */}
+      {/* 1. Instanced Foliage (Cylinder or rounded box for organic 3D tree + solid 2D QR cells) */}
       {foliageData.length > 0 && (
         <instancedMesh
           ref={foliageMeshRef}
@@ -210,15 +145,19 @@ export function TreeFoliageMorph({
           castShadow
           receiveShadow
         >
-          <boxGeometry args={[1, 1, 1]} />
+          {isCrystal ? (
+            <octahedronGeometry args={[0.55, 0]} />
+          ) : (
+            <cylinderGeometry args={[0.55, 0.55, 1.0, 16]} />
+          )}
           <meshStandardMaterial
-            roughness={0.6}
-            metalness={0.05}
+            roughness={isCrystal ? 0.2 : 0.65}
+            metalness={isCrystal ? 0.35 : 0.05}
           />
         </instancedMesh>
       )}
 
-      {/* 2. Instanced Finder Corner Pillars */}
+      {/* 2. Instanced 7x7 Finder Corner Blocks */}
       {finderData.length > 0 && (
         <instancedMesh
           ref={finderMeshRef}
@@ -227,7 +166,7 @@ export function TreeFoliageMorph({
           receiveShadow
         >
           <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial roughness={0.6} metalness={0.05} />
+          <meshStandardMaterial roughness={0.7} metalness={0.05} />
         </instancedMesh>
       )}
     </group>

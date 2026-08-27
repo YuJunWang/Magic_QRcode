@@ -3,27 +3,24 @@ import type { ThemeColors } from '../../../types';
 interface TreePotProps {
   size: number;
   colors: ThemeColors;
-  morphProgress: number; // 0 = 3D Bonsai Pot, 1 = Flat QR Plate
 }
 
 /**
  * Ceramic Bonsai Planter Pot / Floating Island Base
  */
-export function TreePot({ size, colors, morphProgress }: TreePotProps) {
+export function TreePot({ size, colors }: TreePotProps) {
   const plateSize = size + 4;
   const radius = plateSize / 2;
 
-  const isFlat = morphProgress > 0.5;
-
   return (
     <group position={[0, -0.1, 0]}>
-      {/* 1. Main Ground Base (Pure clean white in scan mode for 100% QR contrast) */}
+      {/* 1. Main Ground Base (Clean, high-contrast light bed) */}
       <mesh position={[0, 0, 0]} receiveShadow>
         <boxGeometry args={[plateSize, 0.2, plateSize]} />
         <meshStandardMaterial
-          color={isFlat ? '#ffffff' : colors.groundColor}
-          roughness={0.95}
-          metalness={0.0}
+          color={colors.groundColor}
+          roughness={0.92}
+          metalness={0.02}
         />
       </mesh>
 
@@ -71,7 +68,7 @@ export function TreePot({ size, colors, morphProgress }: TreePotProps) {
         <meshStandardMaterial color={colors.potRimColor} roughness={0.3} metalness={0.6} />
       </mesh>
 
-      {/* 4. Four Elegant Pot Feet (腳座) */}
+      {/* 4. Four Elegant Pot Feet */}
       <mesh position={[radius - 0.6, -0.95, radius - 0.6]} castShadow>
         <boxGeometry args={[1.2, 0.3, 1.2]} />
         <meshStandardMaterial color={colors.potColor} roughness={0.8} />

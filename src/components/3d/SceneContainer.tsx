@@ -48,7 +48,7 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
             position: [0, 22, 26],
             fov: 45,
             near: 0.1,
-            far: 180,
+            far: 800,
           }}
         >
           <color attach="background" args={[colors.background]} />
@@ -63,12 +63,12 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
           {/* Dynamic Lighting Rig */}
           <ambientLight
             color={colors.ambientLightColor}
-            intensity={isScanMode ? 1.6 : 0.9}
+            intensity={isScanMode ? 2.0 : 0.9}
           />
 
           {/* Main Key Sun Light */}
           <directionalLight
-            position={isScanMode ? [0, 45, 0.001] : [18, 28, 16]}
+            position={isScanMode ? [0, 80, 0.001] : [18, 28, 16]}
             color={colors.directionalLightColor}
             intensity={isScanMode ? 2.8 : 2.0}
             castShadow={!isScanMode}
@@ -97,7 +97,7 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
             </>
           )}
 
-          {/* 3D Volumetric Magic Tree & QR Morph Scene */}
+          {/* 3D Volumetric Magic Tree Scene */}
           <MagicTreeScene
             qrData={qrData}
             colors={colors}

@@ -26,6 +26,7 @@ export function MagicTreeScene({
   onTreeClick,
 }: MagicTreeSceneProps) {
   const isCrystal = theme === 'crystal';
+  const isScan = cameraMode === 'scan';
 
   return (
     <group onClick={onTreeClick}>
@@ -33,29 +34,26 @@ export function MagicTreeScene({
       <TreePot
         size={qrData.size}
         colors={colors}
-        morphProgress={cameraMode === 'scan' ? 1 : 0}
       />
 
-      {/* 2. 3D Tree Trunk & Branches */}
-      {!isCrystal && (
+      {/* 2. 3D Tree Trunk & Branches (Shown in 3D Orbit mode) */}
+      {!isCrystal && !isScan && (
         <TreeTrunk
           colors={colors}
-          cameraMode={cameraMode}
         />
       )}
 
-      {/* 3. Morphing Foliage / Crystal Canopy -> Flat QR Code */}
+      {/* 3. Static 3D Canopy Foliage (Projects to 2D QR Code when viewed from top) */}
       <TreeFoliageMorph
         qrData={qrData}
         colors={colors}
         elevation={elevation}
         blockDensity={blockDensity}
-        cameraMode={cameraMode}
         themeType={theme}
       />
 
       {/* 4. Ambient Falling Petals */}
-      {particlesEnabled && cameraMode !== 'scan' && (
+      {particlesEnabled && !isScan && (
         <TreeParticles
           colors={colors}
           areaSize={qrData.size}
