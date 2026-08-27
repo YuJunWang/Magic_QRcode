@@ -1,9 +1,12 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+import gsap from 'gsap';
 import type { QRMatrixData, AppSettings } from '../../types';
 import { getThemeConfig } from '../../utils/themeConfig';
 import { OrthoCamera } from './OrthoCamera';
 import { VoxelSystem } from './VoxelSystem';
+import { TreeParticles } from './TreeParticles';
 
 export interface SceneHandle {
   captureScreenshot: () => string | null;
@@ -13,6 +16,64 @@ interface SceneContainerProps {
   qrData: QRMatrixData;
   settings: AppSettings;
   onToggleMode?: () => void;
+}
+
+function SceneContent({
+  qrData,
+  settings,
+  colors,
+  onToggleMode,
+}: {
+  qrData: QRMatrixData;
+  settings: AppSettings;
+  colors: any;
+  onToggleMode?: () => void;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const isScanMode = settings.cameraMode === 'scan';
+
+  // Smoothly reset group rotation to 0 when entering scan mode
+  useEffect(() => {
+    if (!groupRef.current) return;
+    if (isScanMode) {
+      // Find closest 0 rotation
+      const currentY = groupRef.current.rotation.y;
+      const targetY = Math.round(currentY / (Math.PI * 2)) * (Math.PI * 2);
+      gsap.to(groupRef.current.rotation, {
+        y: targetY,
+        duration: 1.2,
+        ease: 'power3.inOut',
+      });
+    }
+  }, [isScanMode]);
+
+  // Slow auto-rotation in 3D mode
+  useFrame((_, delta) => {
+    if (groupRef.current && settings.autoRotate && !isScanMode) {
+      groupRef.current.rotation.y += delta * 0.15;
+    }
+  });
+
+  return (
+    <group ref={groupRef} onClick={onToggleMode}>
+      <VoxelSystem 
+        qrData={qrData} 
+        viewMode={isScanMode ? '2d' : '3d'} 
+        themeColors={colors}
+        elevation={settings.elevation}
+      />
+
+      {/* Floating / Falling Seasonal Petals */}
+      <TreeParticles
+        enabled={settings.particlesEnabled}
+        color={colors.foliagePrimary || '#ff758c'}
+        count={120}
+        bounds={qrData.size * 0.9}
+        height={Math.max(25, qrData.size * 0.75)}
+        viewMode={isScanMode ? '2d' : '3d'}
+      />
+    </group>
+  );
 }
 
 export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
@@ -46,9 +107,8 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
           }}
         >
           <color attach="background" args={[colors.background]} />
-          {/* 
-            OrthoCamera manages the GSAP animation between 2D (top-down) and 3D (isometric)
-          */}
+          
+          {/* OrthoCamera handles smooth 2D/3D camera transitions */}
           <OrthoCamera 
             viewMode={settings.cameraMode === 'scan' ? '2d' : '3d'} 
             gridSize={qrData.size} 
@@ -67,10 +127,10 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
             intensity={isScanMode ? 1.5 : 1.8}
             castShadow={!isScanMode}
             shadow-mapSize={[2048, 2048]}
-            shadow-camera-left={-25}
-            shadow-camera-right={25}
-            shadow-camera-top={25}
-            shadow-camera-bottom={-25}
+            shadow-camera-left={-28}
+            shadow-camera-right={28}
+            shadow-camera-top={28}
+            shadow-camera-bottom={-28}
             shadow-bias={-0.0001}
           />
 
@@ -91,14 +151,13 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
             </>
           )}
 
-          <group onClick={onToggleMode}>
-            <VoxelSystem 
-              qrData={qrData} 
-              viewMode={settings.cameraMode === 'scan' ? '2d' : '3d'} 
-              themeColors={colors}
-              elevation={settings.elevation}
-            />
-          </group>
+          {/* Scene Content with Auto-Rotate and Falling Petals */}
+          <SceneContent
+            qrData={qrData}
+            settings={settings}
+            colors={colors}
+            onToggleMode={onToggleMode}
+          />
         </Canvas>
       </div>
     );
