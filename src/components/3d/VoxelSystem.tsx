@@ -26,7 +26,74 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
     const accentLeaf = themeColors.accentColor || '#6aa84f';
     const grassColor = themeColors.accentColor || '#45811e';
 
-    // 1. Ground Plaza Base: 2-tile Quiet Zone around the entire QR matrix
+    // 1. Determine Tree Archetype from theme & content hash
+    // Archetypes: 'round' (Banyan/Tropical umbrella), 'cloud' (Ancient Oak/Sakura), 'conifer' (Layered Pine)
+    const contentSeed = size + matrix.flat().filter(Boolean).length;
+    let archetype: 'round' | 'cloud' | 'conifer' = 'cloud';
+
+    if (themeColors.id === 'summer' || themeColors.id === 'winter') {
+      archetype = 'conifer';
+    } else if (themeColors.id === 'zen' || themeColors.id === 'crystal') {
+      archetype = 'round';
+    } else {
+      const types: ('round' | 'cloud' | 'conifer')[] = ['round', 'cloud', 'cloud', 'conifer'];
+      archetype = types[contentSeed % types.length];
+    }
+
+    // Archetype-specific height & canopy proportions
+    let heightMultiplier = 0.65;
+    let domeExponent = 1.6;
+    let crownRoundness = 0.8;
+
+    if (archetype === 'round') {
+      // Broad, rounded umbrella/banyan crown - soft flat top
+      heightMultiplier = 0.52;
+      domeExponent = 2.4;
+      crownRoundness = 1.2;
+    } else if (archetype === 'cloud') {
+      // Billowing organic multi-lobed deciduous tree
+      heightMultiplier = 0.65;
+      domeExponent = 1.6;
+      crownRoundness = 0.9;
+    } else {
+      // Stately pagoda pine / conifer
+      heightMultiplier = 0.82;
+      domeExponent = 1.0;
+      crownRoundness = 0.5;
+    }
+
+    const baseTreeHeight = Math.max(20, size * heightMultiplier) * elevation;
+    const trunkClearanceY = baseTreeHeight * 0.38; // 38% height is clear trunk space
+    const maxCanopyRadius = halfSize * (archetype === 'round' ? 0.74 : 0.68);
+
+    // 2. Trunk Anchor Discovery: Guaranteed central trunk anchor points
+    // Find all dark modules in the central region and sort by distance to (0,0)
+    const centralDarkModules: { x: number; z: number; dist: number }[] = [];
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (matrix[r][c] && !isFinderPattern(r, c)) {
+          const x = c - halfSize;
+          const z = r - halfSize;
+          const dist = Math.hypot(x, z);
+          if (dist <= 3.2) {
+            centralDarkModules.push({ x, z, dist });
+          }
+        }
+      }
+    }
+    centralDarkModules.sort((a, b) => a.dist - b.dist);
+
+    // Select 1 to 2 closest dark modules as guaranteed primary trunk anchors
+    const primaryTrunkAnchors = new Set<string>();
+    if (centralDarkModules.length > 0) {
+      primaryTrunkAnchors.add(`${centralDarkModules[0].x},${centralDarkModules[0].z}`);
+      // If the second closest is also very close (e.g. twin stem), anchor it too
+      if (centralDarkModules.length > 1 && centralDarkModules[1].dist <= 1.8 && (contentSeed % 2 === 0)) {
+        primaryTrunkAnchors.add(`${centralDarkModules[1].x},${centralDarkModules[1].z}`);
+      }
+    }
+
+    // 3. Ground Plaza Base: 2-tile Quiet Zone around the entire QR matrix
     const quietZone = 2;
     const minGrid = -quietZone;
     const maxGrid = size + quietZone;
@@ -36,7 +103,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
         const x = c - halfSize;
         const z = r - halfSize;
 
-        // Alternating subtle checkerboard paving stones
+        // Checkerboard paving stones
         const isAlternate = (Math.abs(r) + Math.abs(c)) % 2 === 0;
         const stoneColor = isAlternate ? '#f5f4ed' : '#eae7df';
 
@@ -48,7 +115,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
           height: 0.1,
         });
 
-        // If outside the QR matrix, it's just the quiet zone plaza
+        // If outside QR matrix, skip foliage
         if (r < 0 || r >= size || c < 0 || c >= size) {
           continue;
         }
@@ -72,8 +139,8 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
           continue;
         }
 
-        // B. Data Modules -> Procedural Asymmetric Tree with Branching Architecture
-        const dist = Math.sqrt(x * x + z * z);
+        // B. Data Modules -> Procedural Foliage & Trunk
+        const dist = Math.hypot(x, z);
         const angle = Math.atan2(z, x);
 
         // Deterministic pseudo-random seed per coordinate
@@ -82,27 +149,20 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
         const rand2 = (seed * 10) % 1;
         const rand3 = (seed * 100) % 1;
 
-        // Tree dimensions: TALL and STATELY
-        const maxCanopyRadius = halfSize * 0.72;
-        const baseTreeHeight = Math.max(28, size * 0.88) * elevation;
-        const trunkClearanceY = baseTreeHeight * 0.40; // 40% height is clear trunk
-
-        // Multi-Lobe Asymmetry: 3 organic sub-clusters (lobes) across the crown
-        const lobe1 = Math.exp(-Math.pow(Math.hypot(x - 3.5, z - 2.5) / (halfSize * 0.45), 2)) * 0.85;
-        const lobe2 = Math.exp(-Math.pow(Math.hypot(x + 4.0, z - 3.0) / (halfSize * 0.42), 2)) * 0.75;
-        const lobe3 = Math.exp(-Math.pow(Math.hypot(x + 1.0, z + 4.5) / (halfSize * 0.48), 2)) * 0.90;
-        const organicLobeBonus = (lobe1 + lobe2 + lobe3) * (baseTreeHeight * 0.35);
+        // Multi-Lobe Asymmetry: 3 organic sub-clusters across the crown
+        const lobe1 = Math.exp(-Math.pow(Math.hypot(x - 3.5, z - 2.5) / (halfSize * 0.45), 2)) * 0.75;
+        const lobe2 = Math.exp(-Math.pow(Math.hypot(x + 4.0, z - 3.0) / (halfSize * 0.42), 2)) * 0.65;
+        const lobe3 = Math.exp(-Math.pow(Math.hypot(x + 1.0, z + 4.5) / (halfSize * 0.48), 2)) * 0.80;
+        const organicLobeBonus = (lobe1 + lobe2 + lobe3) * (baseTreeHeight * 0.25 * crownRoundness);
 
         // Sinusoidal harmonics for natural wind-swept contour
-        const harmonicWave = (Math.sin(angle * 3 + 1.2) * 0.15 + Math.cos(angle * 2 - 0.8) * 0.2) * (1 - dist / maxCanopyRadius);
+        const harmonicWave = (Math.sin(angle * 3 + 1.2) * 0.12 + Math.cos(angle * 2 - 0.8) * 0.15) * (1 - dist / maxCanopyRadius);
 
-        // Strict single-column central trunk condition
-        const isCenterTrunk = Math.abs(x) < 0.75 && Math.abs(z) < 0.75;
+        const isAnchorTrunk = primaryTrunkAnchors.has(`${x},${z}`);
 
-        if (isCenterTrunk) {
-          // --- 1. SLENDER SINGLE CENTRAL TRUNK ---
-          // Exactly 1 module wide, rises cleanly through the open space into the canopy
-          const trunkH = baseTreeHeight * 0.70;
+        if (isAnchorTrunk) {
+          // --- 1. GUARANTEED ROBUST CENTRAL TRUNK ---
+          const trunkH = baseTreeHeight * 0.68;
           trunk.push({
             x,
             y: trunkH / 2,
@@ -111,59 +171,59 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
             height: trunkH,
           });
 
-          // Dense summit foliage capping the top of the trunk
+          // Dense crown foliage capping top of trunk
           foliage.push({
             x,
-            y: baseTreeHeight * 0.96 + rand1 * 3.0,
+            y: baseTreeHeight * 0.95 + rand1 * 2.0,
             z,
             color: secondaryLeaf,
-            height: 0.18,
+            height: 0.16,
           });
         } else if (dist <= maxCanopyRadius) {
-          // --- 2. MAIN CANOPY (Asymmetric Organic Envelope) ---
-          const normalizedDist = dist / maxCanopyRadius;
-          const radialFalloff = Math.pow(Math.max(0, 1 - normalizedDist), 1.15);
+          // --- 2. MAIN CANOPY (Archetype Dome Envelope) ---
+          const normalizedDist = Math.min(1, dist / maxCanopyRadius);
+          const radialFalloff = Math.pow(Math.max(0, 1 - Math.pow(normalizedDist, domeExponent)), 0.85);
           
-          // Compute peak canopy height at this (x, z) coordinate
-          const domeBase = trunkClearanceY + radialFalloff * (baseTreeHeight * 0.60);
-          const noise = Math.sin(x * 0.45) * Math.cos(z * 0.45) * 3.0;
-          const peakY = Math.max(trunkClearanceY + 1.5, domeBase + organicLobeBonus + harmonicWave * baseTreeHeight + noise);
+          // Peak canopy height at this coordinate
+          const domeBase = trunkClearanceY + radialFalloff * (baseTreeHeight - trunkClearanceY);
+          const noise = Math.sin(x * 0.5) * Math.cos(z * 0.5) * (archetype === 'round' ? 1.5 : 2.5);
+          const peakY = Math.max(trunkClearanceY + 1.2, domeBase + organicLobeBonus + harmonicWave * baseTreeHeight + noise);
 
-          // Tiered horizontal leaf layers (4 to 7 layers for thick volume)
-          const numLayers = Math.floor(rand2 * 4) + 4;
+          // Tiered horizontal leaf layers (3 to 6 layers depending on archetype)
+          const maxLayers = archetype === 'round' ? 4 : 6;
+          const numLayers = Math.floor(rand2 * (maxLayers - 2)) + 3;
 
           for (let i = 0; i < numLayers; i++) {
-            // Distribute layers from bottom of canopy up to peakY
-            const layerY = i === 0 ? peakY : Math.max(trunkClearanceY, peakY - i * (2.8 + rand3 * 1.5));
+            // Distribute layers vertically between trunkClearanceY and peakY
+            const layerY = i === 0 ? peakY : Math.max(trunkClearanceY, peakY - i * (2.2 + rand3 * 1.0));
             
-            // Color variation: lighter near peak, deeper inside
+            // Color variation: lighter near peak, deeper in interior
             let leafColor = primaryLeaf;
-            if (i === 0 && rand1 > 0.25) leafColor = accentLeaf;
-            else if (i > 3 || rand1 > 0.65) leafColor = secondaryLeaf;
+            if (i === 0 && rand1 > 0.3) leafColor = accentLeaf;
+            else if (i > 2 || rand1 > 0.65) leafColor = secondaryLeaf;
 
             foliage.push({
               x,
               y: layerY,
               z,
               color: leafColor,
-              height: 0.16,
+              height: 0.15,
             });
           }
 
-          // --- 3. SUBTLE HIGH-ALTITUDE BRANCH SUPPORTS ---
-          // Only tiny branch nodes tucked directly under the canopy at high altitude, NEVER reaching low ground
-          if (dist <= 2.8 && rand1 > 0.65) {
+          // Occasional high-altitude branch support directly under dense lobes
+          if (dist <= 3.0 && (rand1 > 0.72 || isAnchorTrunk)) {
             trunk.push({
               x,
-              y: trunkClearanceY + 0.6,
+              y: trunkClearanceY + 0.5,
               z,
               color: trunkColor,
-              height: 1.2,
+              height: 1.0,
             });
           }
         } else {
-          // --- 4. PERIPHERAL GROUND GRASS & FLOWERBEDS ---
-          const grassHeight = 0.25 + rand1 * 0.4;
+          // --- 3. PERIPHERAL GROUND GRASS & FLOWERBEDS ---
+          const grassHeight = 0.25 + rand1 * 0.35;
           foliage.push({
             x,
             y: grassHeight / 2,
@@ -189,7 +249,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors, elevation = 1.0 }: 
         ))}
       </Instances>
 
-      {/* 2. Natural Tree Trunk & Elevated Branches */}
+      {/* 2. Procedural Central Trunk */}
       {trunkVoxels.length > 0 && (
         <Instances limit={Math.max(1000, trunkVoxels.length)} range={trunkVoxels.length} castShadow receiveShadow>
           <boxGeometry args={[1, 1, 1]} />
