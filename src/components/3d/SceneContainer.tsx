@@ -3,8 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import type { QRMatrixData, AppSettings } from '../../types';
 import { getThemeConfig } from '../../utils/themeConfig';
 import { CameraController } from './CameraController';
-import { MossGarden } from './ZenTheme/MossGarden';
-import { CrystalGarden } from './CrystalTheme/CrystalGarden';
+import { MagicTreeScene } from './MagicTree/MagicTreeScene';
 
 export interface SceneHandle {
   captureScreenshot: () => string | null;
@@ -13,17 +12,15 @@ export interface SceneHandle {
 interface SceneContainerProps {
   qrData: QRMatrixData;
   settings: AppSettings;
+  onToggleMode?: () => void;
 }
 
 export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
-  function SceneContainer({ qrData, settings }, ref) {
+  function SceneContainer({ qrData, settings, onToggleMode }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    const colors = getThemeConfig(
-      settings.theme,
-      settings.zenSubTheme,
-      settings.crystalSubTheme
-    );
+    const colors = getThemeConfig(settings.theme);
+    const isScanMode = settings.cameraMode === 'scan';
 
     // Expose captureScreenshot function via ref
     useImperativeHandle(ref, () => ({
@@ -33,30 +30,27 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
       },
     }));
 
-    const isScanMode = settings.cameraMode === 'scan';
-
     return (
       <div
-        className="relative w-full h-full select-none"
+        className="relative w-full h-full select-none cursor-grab active:cursor-grabbing"
         style={{ backgroundColor: colors.background }}
       >
         <Canvas
           ref={canvasRef}
           shadows
           gl={{
-            preserveDrawingBuffer: true, // Enables canvas.toDataURL export
+            preserveDrawingBuffer: true,
             antialias: true,
             alpha: false,
             powerPreference: 'high-performance',
           }}
           camera={{
-            position: [0, 20, 24],
+            position: [0, 22, 26],
             fov: 45,
             near: 0.1,
-            far: 150,
+            far: 180,
           }}
         >
-          {/* Background color */}
           <color attach="background" args={[colors.background]} />
 
           {/* Camera Controller with smooth perspective / scan lerp */}
@@ -66,63 +60,54 @@ export const SceneContainer = forwardRef<SceneHandle, SceneContainerProps>(
             qrSize={qrData.size}
           />
 
-          {/* Lighting Rig */}
+          {/* Dynamic Lighting Rig */}
           <ambientLight
             color={colors.ambientLightColor}
-            intensity={isScanMode ? 1.5 : 0.8}
+            intensity={isScanMode ? 1.6 : 0.9}
           />
 
-          {/* Main Key Sun Light with high-quality soft shadows */}
+          {/* Main Key Sun Light */}
           <directionalLight
-            position={isScanMode ? [0, 40, 0.01] : [15, 25, 15]}
+            position={isScanMode ? [0, 45, 0.001] : [18, 28, 16]}
             color={colors.directionalLightColor}
-            intensity={isScanMode ? 2.8 : (settings.contrastBoost ? 2.5 : 1.8)}
+            intensity={isScanMode ? 2.8 : 2.0}
             castShadow={!isScanMode}
             shadow-mapSize={[2048, 2048]}
-            shadow-camera-left={-25}
-            shadow-camera-right={25}
-            shadow-camera-top={25}
-            shadow-camera-bottom={-25}
+            shadow-camera-left={-28}
+            shadow-camera-right={28}
+            shadow-camera-top={28}
+            shadow-camera-bottom={-28}
             shadow-bias={-0.0002}
           />
 
-          {/* Fill Light for subtle color tinting */}
+          {/* Fill Light */}
           {!isScanMode && (
             <>
               <directionalLight
-                position={[-15, 12, -15]}
+                position={[-16, 15, -16]}
                 color={colors.accentColor}
-                intensity={0.6}
+                intensity={0.7}
               />
               <pointLight
-                position={[0, 8, 0]}
-                color={colors.darkModulePrimary}
-                intensity={0.5}
-                distance={30}
+                position={[0, 10, 0]}
+                color={colors.foliagePrimary}
+                intensity={0.6}
+                distance={35}
               />
             </>
           )}
 
-          {/* 3D Gardens */}
-          {settings.theme === 'zen' && (
-            <MossGarden
-              qrData={qrData}
-              colors={colors}
-              elevation={settings.elevation}
-              blockDensity={settings.blockDensity}
-              particlesEnabled={settings.particlesEnabled && !isScanMode}
-            />
-          )}
-
-          {settings.theme === 'crystal' && (
-            <CrystalGarden
-              qrData={qrData}
-              colors={colors}
-              elevation={settings.elevation}
-              blockDensity={settings.blockDensity}
-              particlesEnabled={settings.particlesEnabled && !isScanMode}
-            />
-          )}
+          {/* 3D Volumetric Magic Tree & QR Morph Scene */}
+          <MagicTreeScene
+            qrData={qrData}
+            colors={colors}
+            elevation={settings.elevation}
+            blockDensity={settings.blockDensity}
+            cameraMode={settings.cameraMode}
+            particlesEnabled={settings.particlesEnabled}
+            theme={settings.theme}
+            onTreeClick={onToggleMode}
+          />
         </Canvas>
       </div>
     );

@@ -21,7 +21,7 @@ export function App() {
 
     const link = document.createElement('a');
     const timestamp = new Date().toISOString().slice(0, 10);
-    link.download = `MagicQR_3D_${settings.theme}_${timestamp}.png`;
+    link.download = `MagicTree_3D_${settings.theme}_${timestamp}.png`;
     link.href = dataUrl;
     link.click();
   }, [settings.theme]);
@@ -32,6 +32,10 @@ export function App() {
     },
     [updateSetting]
   );
+
+  const handleToggleMode = useCallback(() => {
+    updateSetting('cameraMode', settings.cameraMode === 'orbit' ? 'scan' : 'orbit');
+  }, [settings.cameraMode, updateSetting]);
 
   return (
     <div className="relative w-full h-full overflow-hidden select-none bg-slate-950 font-sans">
@@ -52,8 +56,13 @@ export function App() {
         onModeChange={(mode) => updateSetting('cameraMode', mode)}
       />
 
-      {/* 4. Main 3D Canvas Scene */}
-      <SceneContainer ref={sceneRef} qrData={qrData} settings={settings} />
+      {/* 4. Main 3D Canvas Scene with tap-to-morph */}
+      <SceneContainer
+        ref={sceneRef}
+        qrData={qrData}
+        settings={settings}
+        onToggleMode={handleToggleMode}
+      />
 
       {/* 5. Share & Export Modal */}
       <ShareModal

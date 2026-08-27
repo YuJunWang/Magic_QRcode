@@ -1,40 +1,38 @@
-export type ThemeType = 'zen' | 'crystal';
+export type ThemeType = 'sakura' | 'summer' | 'autumn' | 'winter' | 'crystal' | 'zen';
 
 export type CameraMode = 'orbit' | 'scan';
-
-export type ZenSubTheme = 'moss' | 'autumn-moss' | 'sakura-moss';
-export type CrystalSubTheme = 'amethyst' | 'emerald' | 'sapphire' | 'ruby' | 'celestial';
 
 export interface QRMatrixData {
   size: number;
   matrix: boolean[][];
-  /** Checks whether coordinate (r, c) is part of the 3 corner finder patterns (7x7 zones) */
   isFinderPattern: (r: number, c: number) => boolean;
-  /** Checks whether coordinate is the center anchor (the 3x3 core) of a finder pattern */
   isFinderCenter: (r: number, c: number) => boolean;
-  /** Total count of dark modules */
   darkCount: number;
 }
 
 export interface AppSettings {
   text: string;
   theme: ThemeType;
-  zenSubTheme: ZenSubTheme;
-  crystalSubTheme: CrystalSubTheme;
-  elevation: number;       // 0.2 ~ 1.5 height scaling
-  blockDensity: number;    // block size ratio 0.7 ~ 1.0
+  elevation: number;       // 3D Tree canopy height multiplier
+  blockDensity: number;    // Foliage density
   autoRotate: boolean;
   particlesEnabled: boolean;
-  contrastBoost: boolean;  // Extra high contrast lighting for scanning
   cameraMode: CameraMode;
 }
 
 export interface ThemeColors {
   name: string;
-  description: string;
+  subtitle: string;
+  icon: string;
   background: string;
+  potColor: string;
+  potRimColor: string;
   groundColor: string;
-  groundSpecular: string;
+  trunkColor: string;
+  foliagePrimary: string;
+  foliageSecondary: string;
+  foliageAccent: string;
+  // Aliases for legacy/crystal/zen compatibility
   darkModulePrimary: string;
   darkModuleSecondary: string;
   darkModuleTertiary: string;

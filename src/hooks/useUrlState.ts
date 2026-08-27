@@ -1,17 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import LZString from 'lz-string';
-import type { AppSettings, ThemeType, ZenSubTheme, CrystalSubTheme } from '../types';
+import type { AppSettings, ThemeType } from '../types';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  text: 'https://github.com',
-  theme: 'zen',
-  zenSubTheme: 'moss',
-  crystalSubTheme: 'amethyst',
-  elevation: 0.8,
+  text: 'https://github.com/YuJunWang/Magic_QRcode',
+  theme: 'sakura',
+  elevation: 1.0,
   blockDensity: 0.95,
   autoRotate: true,
   particlesEnabled: true,
-  contrastBoost: false,
   cameraMode: 'orbit',
 };
 
@@ -35,15 +32,12 @@ export function useUrlState() {
     const params = new URLSearchParams(window.location.search);
     const textParam = params.get('text') || params.get('url');
     const themeParam = params.get('theme') as ThemeType;
-    const subThemeParam = params.get('sub');
 
     if (textParam || themeParam) {
       return {
         ...DEFAULT_SETTINGS,
         text: textParam || DEFAULT_SETTINGS.text,
         theme: themeParam || DEFAULT_SETTINGS.theme,
-        zenSubTheme: (themeParam === 'zen' && subThemeParam ? subThemeParam : 'moss') as ZenSubTheme,
-        crystalSubTheme: (themeParam === 'crystal' && subThemeParam ? subThemeParam : 'amethyst') as CrystalSubTheme,
       };
     }
 
@@ -57,8 +51,6 @@ export function useUrlState() {
         const stateToSave = {
           text: settings.text,
           theme: settings.theme,
-          zenSubTheme: settings.zenSubTheme,
-          crystalSubTheme: settings.crystalSubTheme,
           elevation: settings.elevation,
           blockDensity: settings.blockDensity,
         };
@@ -70,7 +62,7 @@ export function useUrlState() {
     }, 300);
 
     return () => clearTimeout(handler);
-  }, [settings.text, settings.theme, settings.zenSubTheme, settings.crystalSubTheme, settings.elevation, settings.blockDensity]);
+  }, [settings.text, settings.theme, settings.elevation, settings.blockDensity]);
 
   const updateSetting = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
