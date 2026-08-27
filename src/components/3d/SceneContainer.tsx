@@ -57,10 +57,11 @@ function SceneContent({
   return (
     <group ref={groupRef} onClick={onToggleMode}>
       <VoxelSystem 
+        key={`voxel-${qrData.size}-${settings.text}-${settings.theme}`}
         qrData={qrData} 
         viewMode={isScanMode ? '2d' : '3d'} 
         themeColors={colors}
-        elevation={settings.elevation}
+        elevation={1.35}
       />
 
       {/* Floating / Falling Seasonal Petals */}

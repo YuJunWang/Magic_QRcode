@@ -97,44 +97,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ settings, onUpdate }
               </div>
             </div>
 
-            {/* 3. 3D Sliders */}
-            <div className="flex flex-col gap-3 bg-slate-900/40 border border-slate-800/80 rounded-xl p-3">
-              {/* Elevation */}
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span className="font-medium">樹冠立體高度 (Canopy Height)</span>
-                  <span className="text-slate-400 font-mono">{settings.elevation.toFixed(1)}x</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.4"
-                  max="1.6"
-                  step="0.1"
-                  value={settings.elevation}
-                  onChange={(e) => onUpdate('elevation', parseFloat(e.target.value))}
-                  className="w-full accent-pink-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
-                />
-              </div>
-
-              {/* Block Density */}
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span className="font-medium">葉片茂密度 (Density)</span>
-                  <span className="text-slate-400 font-mono">{settings.blockDensity.toFixed(2)}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.75"
-                  max="1.0"
-                  step="0.05"
-                  value={settings.blockDensity}
-                  onChange={(e) => onUpdate('blockDensity', parseFloat(e.target.value))}
-                  className="w-full accent-pink-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* 4. Quick Toggles */}
+            {/* 3. Quick Toggles */}
             <div className="grid grid-cols-2 gap-2">
               {/* Auto Rotate */}
               <button
