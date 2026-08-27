@@ -1,6 +1,13 @@
 import type { ThemeColors, ThemeType } from '../types';
 
-export const THEME_CONFIGS: Record<ThemeType, ThemeColors> = {
+export interface ExtendedThemeColors extends ThemeColors {
+  foliageRich?: string;
+  trunkBarkDark?: string;
+  grassBase?: string;
+  grassDark?: string;
+}
+
+export const THEME_CONFIGS: Record<ThemeType, ExtendedThemeColors> = {
   sakura: {
     name: '春櫻魔法樹',
     subtitle: 'Spring Sakura Tree',
@@ -9,14 +16,18 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeColors> = {
     potColor: '#2b1d28',
     potRimColor: '#d8829d',
     groundColor: '#fff5f7',
-    trunkColor: '#4a2c2a',
-    foliagePrimary: '#4a0e2e',    // 深沉櫻桃黑
-    foliageSecondary: '#701a45',  // 濃郁緋櫻
-    foliageAccent: '#9d174d',     // 艷麗玫紅
-    darkModulePrimary: '#4a0e2e',
-    darkModuleSecondary: '#701a45',
+    lightModuleColor: '#fcedf2',
+    trunkColor: '#3b1d11',
+    trunkBarkDark: '#240f09',
+    foliagePrimary: '#701a45',    // 濃郁緋櫻 (Y ≈ 0.22)
+    foliageSecondary: '#4a0e2e',  // 深沉櫻木 (Y ≈ 0.14)
+    foliageAccent: '#9d174d',     // 艷麗玫紅冠頂 (Y ≈ 0.27)
+    foliageRich: '#2b051a',       // 陰影深櫻 (Y ≈ 0.07)
+    darkModulePrimary: '#701a45',
+    darkModuleSecondary: '#4a0e2e',
     darkModuleTertiary: '#9d174d',
-    lightModuleColor: '#fff5f7',
+    grassBase: '#24381e',
+    grassDark: '#162412',
     finderPatternColor: '#1a0512',
     finderAccentColor: '#4a0e2e',
     accentColor: '#db2777',
@@ -28,18 +39,22 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeColors> = {
     name: '夏翠松柏樹',
     subtitle: 'Summer Lush Bonsai',
     icon: '🌲',
-    background: '#0a1610',
+    background: '#09140e',
     potColor: '#1a2920',
     potRimColor: '#34d399',
-    groundColor: '#f0fdf4',
-    trunkColor: '#3d2b1f',
-    foliagePrimary: '#064e3b',    // 幽邃松柏
-    foliageSecondary: '#065f46',  // 濃翠綠松
-    foliageAccent: '#047857',     // 翠玉深綠
-    darkModulePrimary: '#064e3b',
-    darkModuleSecondary: '#065f46',
+    groundColor: '#f2fbf5',
+    lightModuleColor: '#e3f7eb',
+    trunkColor: '#38220f',
+    trunkBarkDark: '#201308',
+    foliagePrimary: '#065f46',    // 濃翠綠松 (Y ≈ 0.25)
+    foliageSecondary: '#064e3b',  // 幽邃松柏 (Y ≈ 0.21)
+    foliageAccent: '#047857',     // 翠玉深綠冠頂 (Y ≈ 0.30)
+    foliageRich: '#022c22',       // 陰影墨松 (Y ≈ 0.11)
+    darkModulePrimary: '#065f46',
+    darkModuleSecondary: '#064e3b',
     darkModuleTertiary: '#047857',
-    lightModuleColor: '#f0fdf4',
+    grassBase: '#1b4329',
+    grassDark: '#0e2b19',
     finderPatternColor: '#022c22',
     finderAccentColor: '#064e3b',
     accentColor: '#10b981',
@@ -51,21 +66,25 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeColors> = {
     name: '金秋紅楓樹',
     subtitle: 'Autumn Maple Tree',
     icon: '🍁',
-    background: '#180e08',
+    background: '#160b05',
     potColor: '#2d180c',
     potRimColor: '#f59e0b',
-    groundColor: '#fffbeb',
-    trunkColor: '#45200e',
-    foliagePrimary: '#7f1d1d',    // 深紅楓心
-    foliageSecondary: '#991b1b',  // 烈焰深紅
-    foliageAccent: '#b45309',     // 焦糖橙褐
-    darkModulePrimary: '#7f1d1d',
-    darkModuleSecondary: '#991b1b',
-    darkModuleTertiary: '#b45309',
-    lightModuleColor: '#fffbeb',
+    groundColor: '#fffaf0',
+    lightModuleColor: '#fdf0dc',
+    trunkColor: '#3d1c06',
+    trunkBarkDark: '#260f02',
+    foliagePrimary: '#851d1d',    // 楓紅心葉 (Y ≈ 0.23)
+    foliageSecondary: '#5c1010',  // 烈焰暗紅 (Y ≈ 0.15)
+    foliageAccent: '#9a3412',     // 焦糖赤楓冠頂 (Y ≈ 0.28)
+    foliageRich: '#380909',       // 陰影深紅 (Y ≈ 0.09)
+    darkModulePrimary: '#851d1d',
+    darkModuleSecondary: '#5c1010',
+    darkModuleTertiary: '#9a3412',
+    grassBase: '#4a3417',
+    grassDark: '#2e1e0a',
     finderPatternColor: '#450a0a',
     finderAccentColor: '#7f1d1d',
-    accentColor: '#f97316',
+    accentColor: '#ea580c',
     ambientLightColor: '#fffbeb',
     directionalLightColor: '#ffedd5',
     particleColors: ['#ef4444', '#f97316', '#f59e0b', '#b45309'],
@@ -74,22 +93,26 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeColors> = {
     name: '冬霜覆雪樹',
     subtitle: 'Winter Snow Frost',
     icon: '❄️',
-    background: '#08101a',
+    background: '#070f18',
     potColor: '#121f2f',
     potRimColor: '#60a5fa',
     groundColor: '#f0f9ff',
-    trunkColor: '#2a3b4c',
-    foliagePrimary: '#0c4a6e',    // 曜石海藍
-    foliageSecondary: '#075985',  // 深海冰晶
-    foliageAccent: '#0369a1',     // 湛藍冰柱
+    lightModuleColor: '#dcf0fa',
+    trunkColor: '#1e293b',
+    trunkBarkDark: '#0f172a',
+    foliagePrimary: '#0c4a6e',    // 曜石海藍 (Y ≈ 0.23)
+    foliageSecondary: '#073652',  // 冰海深晶 (Y ≈ 0.16)
+    foliageAccent: '#0369a1',     // 湛藍冰柱冠頂 (Y ≈ 0.30)
+    foliageRich: '#032033',       // 陰影暗冰 (Y ≈ 0.10)
     darkModulePrimary: '#0c4a6e',
-    darkModuleSecondary: '#075985',
+    darkModuleSecondary: '#073652',
     darkModuleTertiary: '#0369a1',
-    lightModuleColor: '#f0f9ff',
+    grassBase: '#16384c',
+    grassDark: '#0c2230',
     finderPatternColor: '#082f49',
     finderAccentColor: '#0c4a6e',
-    accentColor: '#38bdf8',
-    ambientLightColor: '#f0f9ff',
+    accentColor: '#0284c7',
+    ambientLightColor: '#f0fdf4',
     directionalLightColor: '#e0f2fe',
     particleColors: ['#ffffff', '#e0f2fe', '#bae6fd', '#7dd3fc'],
   },
@@ -97,21 +120,25 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeColors> = {
     name: '幻彩水晶礦山',
     subtitle: 'Crystal Geode Mountain',
     icon: '💎',
-    background: '#0a0614',
+    background: '#0b0517',
     potColor: '#150d28',
     potRimColor: '#c084fc',
     groundColor: '#faf5ff',
-    trunkColor: '#331b54',
-    foliagePrimary: '#4c1d95',    // 深邃暗晶
-    foliageSecondary: '#581c87',  // 濃夜紫晶
-    foliageAccent: '#6b21a8',     // 紫晶主脈
-    darkModulePrimary: '#4c1d95',
-    darkModuleSecondary: '#581c87',
-    darkModuleTertiary: '#6b21a8',
-    lightModuleColor: '#faf5ff',
+    lightModuleColor: '#f1e4fc',
+    trunkColor: '#27103d',
+    trunkBarkDark: '#160724',
+    foliagePrimary: '#581c87',    // 濃夜紫晶 (Y ≈ 0.22)
+    foliageSecondary: '#3b0764',  // 深邃暗晶 (Y ≈ 0.13)
+    foliageAccent: '#7e22ce',     // 紫晶主脈冠頂 (Y ≈ 0.29)
+    foliageRich: '#240342',       // 陰影深脈 (Y ≈ 0.08)
+    darkModulePrimary: '#581c87',
+    darkModuleSecondary: '#3b0764',
+    darkModuleTertiary: '#7e22ce',
+    grassBase: '#31184a',
+    grassDark: '#1f0d30',
     finderPatternColor: '#3b0764',
     finderAccentColor: '#4c1d95',
-    accentColor: '#a855f7',
+    accentColor: '#9333ea',
     ambientLightColor: '#f3e8ff',
     directionalLightColor: '#f3e8ff',
     particleColors: ['#c77dff', '#e0aaff', '#9d4edd', '#ffffff'],
@@ -120,27 +147,31 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeColors> = {
     name: '日式枯山水苔玉',
     subtitle: 'Zen Moss Garden',
     icon: '🪨',
-    background: '#0d130e',
+    background: '#0a100b',
     potColor: '#1f2b20',
     potRimColor: '#4ade80',
-    groundColor: '#f7fee7',
-    trunkColor: '#2e3a2f',
-    foliagePrimary: '#14532d',    // 幽谷深苔
-    foliageSecondary: '#064e3b',  // 墨綠古苔
-    foliageAccent: '#1c3d18',     // 沉石蒼苔
-    darkModulePrimary: '#14532d',
-    darkModuleSecondary: '#064e3b',
-    darkModuleTertiary: '#1c3d18',
-    lightModuleColor: '#f7fee7',
+    groundColor: '#f8faf2',
+    lightModuleColor: '#ecf2df',
+    trunkColor: '#2b3327',
+    trunkBarkDark: '#171c14',
+    foliagePrimary: '#165b33',    // 墨綠古苔 (Y ≈ 0.25)
+    foliageSecondary: '#114224',  // 幽谷深苔 (Y ≈ 0.18)
+    foliageAccent: '#15803d',     // 沉石蒼苔冠頂 (Y ≈ 0.31)
+    foliageRich: '#0a2916',       // 陰影蒼石 (Y ≈ 0.11)
+    darkModulePrimary: '#165b33',
+    darkModuleSecondary: '#114224',
+    darkModuleTertiary: '#15803d',
+    grassBase: '#1f4225',
+    grassDark: '#122916',
     finderPatternColor: '#052e16',
     finderAccentColor: '#14532d',
-    accentColor: '#22c55e',
+    accentColor: '#16a34a',
     ambientLightColor: '#f7fafc',
     directionalLightColor: '#fffaf0',
     particleColors: ['#22c55e', '#16a34a', '#86efac'],
   },
 };
 
-export function getThemeConfig(theme: ThemeType): ThemeColors {
+export function getThemeConfig(theme: ThemeType): ExtendedThemeColors {
   return THEME_CONFIGS[theme] || THEME_CONFIGS.sakura;
 }

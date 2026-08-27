@@ -2,11 +2,12 @@ import { useMemo } from 'react';
 import { Instances } from '@react-three/drei';
 import { TreeVoxel, type VoxelData } from './TreeVoxel';
 import type { QRMatrixData } from '../../types';
+import type { ExtendedThemeColors } from '../../utils/themeConfig';
 
 interface VoxelSystemProps {
   qrData: QRMatrixData;
   viewMode: '2d' | '3d';
-  themeColors: any;
+  themeColors: ExtendedThemeColors;
   elevation?: number;
 }
 
@@ -63,20 +64,19 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
     const canopyBaseHeight = TRUNK_LAYERS * CUBE_HEIGHT;
     const canopyOuterRadius = size * CANOPY_OUTER_RADIUS_FACTOR;
 
-    // --- Theme Color Palettes ---
-    const trunkBarkBase = themeColors.trunkColor || '#42210d';
-    const trunkBarkDark = '#2b1406';
+    // --- Theme High-Contrast Color Palettes ---
+    const trunkBarkBase = themeColors.trunkColor || '#38220f';
+    const trunkBarkDark = themeColors.trunkBarkDark || '#201308';
 
-    const leafPrimary = themeColors.foliagePrimary || '#942e4d';
-    const leafSecondary = themeColors.foliageSecondary || '#751f3d';
-    const leafAccent = themeColors.accentColor || '#b34061';
-    const leafRich = '#5c122e';
+    const leafPrimary = themeColors.foliagePrimary || '#701a45';
+    const leafSecondary = themeColors.foliageSecondary || '#4a0e2e';
+    const leafAccent = themeColors.foliageAccent || '#9d174d';
+    const leafRich = themeColors.foliageRich || '#2b051a';
 
-    const grassBase = themeColors.accentColor || '#12470d';
-    const grassDark = '#0d2e0a';
+    const grassBase = themeColors.grassBase || '#1b4329';
+    const grassDark = themeColors.grassDark || '#0e2b19';
 
     // 1. Guaranteed Trunk Anchor Discovery
-    // Search within center radius for black modules to ensure the trunk always spawns
     const centerDarkList: { r: number; c: number; dist: number }[] = [];
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
@@ -92,7 +92,6 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
     }
     centerDarkList.sort((a, b) => a.dist - b.dist);
 
-    // Set of guaranteed trunk coordinates
     const guaranteedTrunkCoords = new Set<string>();
     if (centerDarkList.length > 0) {
       guaranteedTrunkCoords.add(`${centerDarkList[0].c},${centerDarkList[0].r}`);
@@ -119,9 +118,9 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         const isInsideQR = r >= 0 && r < size && c >= 0 && c < size;
         const isQrDark = isInsideQR ? matrix[r][c] : false;
 
-        // Ground paving tile (Dirt / Plaza stone)
+        // Ground paving tile (High luminance stone)
         const isAlternate = (Math.abs(r) + Math.abs(c)) % 2 === 0;
-        const dirtColor = isAlternate ? '#fffdf7' : '#f5f0e3';
+        const dirtColor = isAlternate ? (themeColors.groundColor || '#fffdf7') : (themeColors.lightModuleColor || '#f5f0e3');
 
         ground.push({
           x,
@@ -135,13 +134,13 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
           continue;
         }
 
-        // Finder patterns -> decorative square hedge box
+        // Finder patterns -> deep decorative box
         if (isFinderPattern(r, c)) {
           foliage.push({
             x,
             y: 0.4,
             z,
-            color: leafSecondary,
+            color: themeColors.finderPatternColor || leafSecondary,
             height: 0.8,
           });
           continue;
@@ -172,7 +171,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         } else {
           // Fallen petals on forest floor
           const noise = pseudoRandom(c, r, 200);
-          const petalColor = noise > 0.6 ? leafPrimary : (noise > 0.3 ? '#856b4d' : '#617a47');
+          const petalColor = noise > 0.6 ? leafPrimary : (noise > 0.3 ? leafSecondary : leafRich);
           foliage.push({
             x,
             y: 0.15,
@@ -185,7 +184,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
     }
 
     // ----------------------------------------------------
-    // STAGE 2: TRUNK PASS (Vertical Columns - Preserved 100%)
+    // STAGE 2: TRUNK PASS (Vertical Columns)
     // ----------------------------------------------------
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
