@@ -83,8 +83,8 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
     const TRUNK_RADIUS = Math.max(2.4, size * 0.075);
     const ROOT_FLARE_RADIUS = TRUNK_RADIUS * 1.55; // Tighter ground-level flare zone
     const TRUNK_LAYERS = Math.max(10, Math.round(size * 0.45));
-    const MAX_CANOPY_LAYERS = Math.max(13, Math.round(size * 0.62)); // Voluminous canopy stacking
-    const CANOPY_OUTER_RADIUS_FACTOR = 0.48; // Expanded lush canopy radius
+    const MAX_CANOPY_LAYERS = Math.max(14, Math.round(size * 0.66)); // Voluminous canopy stacking
+    const CANOPY_OUTER_RADIUS_FACTOR = 0.50; // Expanded lush canopy radius
 
     const canopyBaseHeight = TRUNK_LAYERS * CUBE_HEIGHT;
     const canopyOuterRadius = size * CANOPY_OUTER_RADIUS_FACTOR;
@@ -96,7 +96,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
     const leafPrimary = themeColors.foliagePrimary || '#701a45';
     const leafSecondary = themeColors.foliageSecondary || '#4a0e2e';
     const leafAccent = themeColors.foliageAccent || '#9d174d';
-    const leafHighlight = themeColors.foliageHighlight || themeColors.accentColor || '#be185d';
+    const leafHighlight = themeColors.foliageHighlight || themeColors.accentColor || '#a21caf';
     const leafRich = themeColors.foliageRich || '#2b051a';
 
     const grassBase = themeColors.grassBase || '#1b4329';
@@ -241,7 +241,6 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         } else if (isRootFlare) {
           // Rapid-decay buttress root flare: thick only at ground base (1~2 layers max)
           const flareT = 1.0 - (dist - TRUNK_RADIUS) / (ROOT_FLARE_RADIUS - TRUNK_RADIUS);
-          // Rapid power decay: only immediate neighbors get layer 2, outer edge gets layer 1
           const rootMaxLayers = flareT > 0.65 ? 2 : (flareT > 0.2 ? 1 : 0);
 
           for (let layer = 1; layer <= rootMaxLayers; layer++) {
@@ -260,13 +259,18 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
     }
 
     // ----------------------------------------------------
-    // STAGE 3: VOLUMINOUS 5-LOBE BILLOWING CANOPY WITH ENHANCED POROSITY (DROPOUT)
+    // STAGE 3: VOLUMINOUS ASYMMETRIC 5-LOBE CANOPY WITH RANDOMIZED PEAKS & AIRY DROPOUT
     // ----------------------------------------------------
     const matrixHash = hashString(matrix.map(row => row.map(b => (b ? '1' : '0')).join('')).join(''));
     const contentSeed = matrixHash % 10000;
 
-    // 5 Procedural Lobe Centers based on URL/Content Hash (Golden Angle Spacing)
+    // 5 Procedural Lobe Centers based on URL/Content Hash with Organic Asymmetric Variations
     const baseAngle = ((contentSeed % 360) * Math.PI) / 180;
+    const seed0 = pseudoRandom(1, 2, contentSeed);
+    const seed1 = pseudoRandom(3, 4, contentSeed);
+    const seed2 = pseudoRandom(5, 6, contentSeed);
+    const seed3 = pseudoRandom(7, 8, contentSeed);
+    const seed4 = pseudoRandom(9, 10, contentSeed);
 
     interface CanopyLobe {
       cx: number;
@@ -277,41 +281,41 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
     }
 
     const lobes: CanopyLobe[] = [
-      // Central High Crown Lobe
+      // Central High Crown Lobe (Organic Asymmetric Height)
       {
-        cx: 0,
-        cz: 0,
-        radius: canopyOuterRadius * 0.88,
-        maxLayers: MAX_CANOPY_LAYERS * 1.06,
+        cx: (seed0 - 0.5) * (canopyOuterRadius * 0.15),
+        cz: (seed1 - 0.5) * (canopyOuterRadius * 0.15),
+        radius: canopyOuterRadius * (0.82 + seed0 * 0.12),
+        maxLayers: MAX_CANOPY_LAYERS * (1.02 + (seed0 - 0.5) * 0.16),
         weight: 1.0,
       },
-      // 4 Expanded Satellite Billowing Cloud Lobes
+      // 4 Expanded Satellite Billowing Cloud Lobes with Independent Heights & Radii
       {
-        cx: Math.cos(baseAngle) * (canopyOuterRadius * 0.44),
-        cz: Math.sin(baseAngle) * (canopyOuterRadius * 0.44),
-        radius: canopyOuterRadius * 0.68,
-        maxLayers: MAX_CANOPY_LAYERS * 0.96,
-        weight: 0.96,
+        cx: Math.cos(baseAngle + (seed1 - 0.5) * 0.3) * (canopyOuterRadius * (0.42 + seed1 * 0.08)),
+        cz: Math.sin(baseAngle + (seed1 - 0.5) * 0.3) * (canopyOuterRadius * (0.42 + seed1 * 0.08)),
+        radius: canopyOuterRadius * (0.62 + seed1 * 0.12),
+        maxLayers: MAX_CANOPY_LAYERS * (0.86 + seed1 * 0.22),
+        weight: 0.95,
       },
       {
-        cx: Math.cos(baseAngle + 1.57) * (canopyOuterRadius * 0.48),
-        cz: Math.sin(baseAngle + 1.57) * (canopyOuterRadius * 0.48),
-        radius: canopyOuterRadius * 0.64,
-        maxLayers: MAX_CANOPY_LAYERS * 0.92,
+        cx: Math.cos(baseAngle + 1.57 + (seed2 - 0.5) * 0.3) * (canopyOuterRadius * (0.44 + seed2 * 0.08)),
+        cz: Math.sin(baseAngle + 1.57 + (seed2 - 0.5) * 0.3) * (canopyOuterRadius * (0.44 + seed2 * 0.08)),
+        radius: canopyOuterRadius * (0.60 + seed2 * 0.12),
+        maxLayers: MAX_CANOPY_LAYERS * (0.84 + seed2 * 0.20),
         weight: 0.92,
       },
       {
-        cx: Math.cos(baseAngle + 3.14) * (canopyOuterRadius * 0.42),
-        cz: Math.sin(baseAngle + 3.14) * (canopyOuterRadius * 0.42),
-        radius: canopyOuterRadius * 0.64,
-        maxLayers: MAX_CANOPY_LAYERS * 0.90,
+        cx: Math.cos(baseAngle + 3.14 + (seed3 - 0.5) * 0.3) * (canopyOuterRadius * (0.40 + seed3 * 0.08)),
+        cz: Math.sin(baseAngle + 3.14 + (seed3 - 0.5) * 0.3) * (canopyOuterRadius * (0.40 + seed3 * 0.08)),
+        radius: canopyOuterRadius * (0.62 + seed3 * 0.12),
+        maxLayers: MAX_CANOPY_LAYERS * (0.82 + seed3 * 0.20),
         weight: 0.90,
       },
       {
-        cx: Math.cos(baseAngle + 4.71) * (canopyOuterRadius * 0.40),
-        cz: Math.sin(baseAngle + 4.71) * (canopyOuterRadius * 0.40),
-        radius: canopyOuterRadius * 0.62,
-        maxLayers: MAX_CANOPY_LAYERS * 0.88,
+        cx: Math.cos(baseAngle + 4.71 + (seed4 - 0.5) * 0.3) * (canopyOuterRadius * (0.38 + seed4 * 0.08)),
+        cz: Math.sin(baseAngle + 4.71 + (seed4 - 0.5) * 0.3) * (canopyOuterRadius * (0.38 + seed4 * 0.08)),
+        radius: canopyOuterRadius * (0.58 + seed4 * 0.12),
+        maxLayers: MAX_CANOPY_LAYERS * (0.80 + seed4 * 0.20),
         weight: 0.88,
       },
     ];
@@ -325,7 +329,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         const distToCenter = Math.hypot(x, z);
 
         if (distToCenter < canopyOuterRadius) {
-          // Calculate influence of all 5 lobes
+          // Calculate influence of all 5 asymmetric lobes
           let maxLobeHeight = 0;
           let dominantT = 0;
           let secondDominantT = 0;
@@ -335,7 +339,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
             if (d < lobe.radius) {
               const t = 1 - d / lobe.radius;
               // Smooth, rounded cosine billowing cloud puff profile with extra volume
-              const lobeH = lobe.maxLayers * (0.24 + 0.76 * Math.pow(Math.sin(t * Math.PI * 0.5), 0.9));
+              const lobeH = lobe.maxLayers * (0.24 + 0.76 * Math.pow(Math.sin(t * Math.PI * 0.5), 0.88));
               if (lobeH > maxLobeHeight) {
                 secondDominantT = dominantT;
                 maxLobeHeight = lobeH;
@@ -349,12 +353,24 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
           // Fallback near outer perimeter
           if (maxLobeHeight === 0) {
             const t = Math.max(0, 1 - distToCenter / canopyOuterRadius);
-            maxLobeHeight = MAX_CANOPY_LAYERS * (0.20 + 0.80 * t * t);
+            maxLobeHeight = MAX_CANOPY_LAYERS * (0.18 + 0.82 * t * t);
             dominantT = t;
           }
 
-          const layersHere = Math.max(3, Math.round(maxLobeHeight));
-          const domeOffset = Math.floor(dominantT * 4.0) * CUBE_HEIGHT;
+          // --- Break Uniform Spherical Dome: Multi-Frequency Cluster Height Noise ---
+          // 1. Macro cluster variation (2x2 modules grouping for billowy clumps)
+          const macroClusterNoise = (pseudoRandom(Math.floor(c / 2.2), Math.floor(r / 2.2), contentSeed + 401) - 0.48) * 3.4;
+          // 2. Micro height jitter
+          const microHeightNoise = (pseudoRandom(c, r, contentSeed + 502) - 0.5) * 1.8;
+          // 3. Peak spire irregularity (some summits spike higher into spires, others stay low)
+          const peakSpireNoise = dominantT > 0.52 ? (pseudoRandom(c, r, contentSeed + 603) > 0.45 ? 2.0 : -1.0) : 0;
+
+          const totalHeightLayers = maxLobeHeight + macroClusterNoise + microHeightNoise + peakSpireNoise;
+          const layersHere = Math.max(3, Math.round(totalHeightLayers));
+
+          // Localized stepped terracing for asymmetric levels
+          const terraceJitter = (pseudoRandom(Math.floor(c / 3), Math.floor(r / 3), contentSeed + 704) - 0.5) * 1.4;
+          const domeOffset = Math.floor(Math.max(0, dominantT * 3.8 + terraceJitter)) * CUBE_HEIGHT;
 
           // Under-canopy organic droop for rounded volumetric cloud underside
           const baseDroop = dominantT > 0.20 && dominantT < 0.80 ? -Math.floor(pseudoRandom(c, r, 300) * 1.8) : 0;
@@ -367,16 +383,25 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
 
           // Stack cubic foliage blocks vertically
           for (let layer = baseDroop; layer < layersHere; layer++) {
-            // Enhanced Airiness / Porosity / Dropout
+            // Enhanced Airiness / Porosity / Dropout (Komorebi Light-Filtering Effect)
             // SAFETY RULE: Always preserve layer === baseDroop so 2D QR top-down projection is 100% solid!
             if (layer > baseDroop) {
               const dropoutNoise = pseudoRandom(c, r, layer * 37 + contentSeed);
-              const isUpperZone = (layer - baseDroop) / (layersHere - baseDroop) > 0.65;
-              const isEdgeZone = dominantT < 0.36;
-              // Tuned dropout: ~0.085 in upper/edge canopy, ~0.040 in core body
-              const dropoutRate = isUpperZone || isEdgeZone ? 0.085 : 0.040;
+              const heightFraction = (layer - baseDroop) / (layersHere - baseDroop);
+              const isPeakVoxel = layer >= layersHere - 2;
+              const isUpperZone = heightFraction > 0.60;
+              const isEdgeZone = dominantT < 0.38;
+
+              // Tuned airy dropout rates: loose fluffy peaks & edges (~0.12), upper canopy (~0.09), core (~0.045)
+              let dropoutRate = 0.045;
+              if (isPeakVoxel) {
+                dropoutRate = 0.13;
+              } else if (isUpperZone || isEdgeZone) {
+                dropoutRate = 0.09;
+              }
+
               if (dropoutNoise < dropoutRate) {
-                continue; // Creates airy negative space, light permeability and organic cloud clumps
+                continue; // Creates airy negative space, natural light permeability and organic cloud clumps
               }
             }
 
@@ -409,20 +434,22 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
             });
           }
 
-          // Extra stepped crown tufts for fluffy cloud summit texture
-          const extraCount = Math.floor(pseudoRandom(c, r, 500) * (dominantT > 0.60 ? 4 : 2));
-          for (let e = 0; e < extraCount; e++) {
-            const extraLayer = layersHere + e;
-            const extraY = canopyBaseHeight + extraLayer * CUBE_HEIGHT + domeOffset;
+          // Asymmetric stepped crown tufts for fluffy organic cloud summit texture
+          const tuftTrigger = pseudoRandom(c, r, 808 + contentSeed);
+          if (dominantT > 0.55 && tuftTrigger > 0.40) {
+            const extraCount = Math.floor(pseudoRandom(c, r, 909) * 3.5);
+            for (let e = 0; e < extraCount; e++) {
+              const extraLayer = layersHere + e;
+              const extraY = canopyBaseHeight + extraLayer * CUBE_HEIGHT + domeOffset;
 
-            // Tufts receive bright sunlit/highlight blossom tint
-            foliage.push({
-              x,
-              y: extraY + 0.5,
-              z,
-              color: leafHighlight,
-              height: 1.0,
-            });
+              foliage.push({
+                x,
+                y: extraY + 0.5,
+                z,
+                color: leafHighlight,
+                height: 1.0,
+              });
+            }
           }
         }
       }
@@ -453,7 +480,7 @@ export function VoxelSystem({ qrData, viewMode, themeColors }: VoxelSystemProps)
         </Instances>
       )}
 
-      {/* 3. Voluminous 5-Lobe Billowing Foliage Canopy with Subtle Radiance */}
+      {/* 3. Voluminous Asymmetric 5-Lobe Billowing Foliage Canopy with Subtle Radiance */}
       <Instances limit={10000} range={foliageVoxels.length} castShadow receiveShadow>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial
